@@ -1,0 +1,65 @@
+{
+  "name": "@fishaudio/agent-client",
+  "version": "0.0.1",
+  "description": "Fish Audio voice-agent client SDK for browsers: sessions, realtime audio, transcripts, client tools.",
+  "keywords": [
+    "fish-audio",
+    "voice",
+    "agent",
+    "tts",
+    "asr",
+    "webrtc",
+    "livekit"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fishaudio/fish-agent-sdk-web.git",
+    "directory": "packages/client"
+  },
+  "homepage": "https://github.com/fishaudio/fish-agent-sdk-web/tree/main/packages/client#readme",
+  "bugs": "https://github.com/fishaudio/fish-agent-sdk-web/issues",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "pnpm build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fishaudio/agent-protocol": "workspace:^",
+    "livekit-client": "^2.20.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.5"
+  }
+}

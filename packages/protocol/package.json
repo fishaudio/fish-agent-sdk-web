@@ -1,0 +1,57 @@
+{
+  "name": "@fishaudio/agent-protocol",
+  "version": "0.0.1",
+  "description": "Wire contracts for Fish Audio agent sessions: realtime room-channel messages and session-creation shapes.",
+  "keywords": [
+    "fish-audio",
+    "voice",
+    "agent",
+    "protocol",
+    "realtime"
+  ],
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fishaudio/fish-agent-sdk-web.git",
+    "directory": "packages/protocol"
+  },
+  "homepage": "https://github.com/fishaudio/fish-agent-sdk-web/tree/main/packages/protocol#readme",
+  "bugs": "https://github.com/fishaudio/fish-agent-sdk-web/issues",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "pnpm build",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3"
+  }
+}

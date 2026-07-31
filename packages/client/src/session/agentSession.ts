@@ -1,0 +1,629 @@
+// Type-only: the transport implementation still loads lazily (see start()).
+import type { Room } from "livekit-client";
+import type {
+  AgentSessionMessage,
+  ClientSessionMessage,
+  SessionToken,
+} from "@fishaudio/agent-protocol";
+import { assertOutputSelectionSupported, AudioOutput } from "../audio/output.js";
+import { AudioStreamAnalyser } from "../audio/analysis.js";
+import { FishAgentError } from "../errors.js";
+import type {
+  AgentMode,
+  AgentSessionCallbacks,
+  AgentSessionEvents,
+  EndReason,
+  SessionStatus,
+  TranscriptSegment,
+} from "../events.js";
+import { resolveSessionToken, type SessionRequestOptions } from "../sessionToken.js";
+import type {
+  TranscriptionSegmentUpdate,
+  Transport,
+  TransportConnectionState,
+  TransportFactory,
+} from "../transport/types.js";
+import { TypedEmitter } from "./emitter.js";
+import {
+  ClientToolDispatcher,
+  DEFAULT_CLIENT_TOOL_TIMEOUT_MS,
+  type ClientToolHandler,
+} from "./toolDispatcher.js";
+import { WakeLockHolder } from "./wakeLock.js";
+
+export interface AgentSessionOptions extends SessionRequestOptions {
+  clientTools?: Record<string, ClientToolHandler>;
+  clientToolTimeoutMs?: number;
+  /**
+   * Capture the microphone on start. Default true. Set false to join without
+   * requesting it (text-first UIs); the first `setMicMuted(false)` then
+   * captures — the permission prompt happens there, so call it from a user
+   * gesture.
+   */
+  microphone?: boolean;
+  audio?: {
+    inputDeviceId?: string;
+    /** Playback device (`setSinkId`); start rejects with `device_change_failed`
+     * where output selection is unsupported (before creating a server session)
+     * or the device cannot be used (before connecting). */
+    outputDeviceId?: string;
+  };
+  /**
+   * Hold a screen wake lock while the session is live, so long calls survive
+   * the phone trying to sleep. Default true; denial is silent. Set false to
+   * leave screen policy to the page.
+   */
+  wakeLock?: boolean;
+  callbacks?: Partial<AgentSessionCallbacks>;
+}
+
+/** How long after connect the agent participant gets to show up before the
+ * session gives up — normal joins land within a couple of seconds. */
+const AGENT_JOIN_TIMEOUT_MS = 15_000;
+
+/** Assigned in AgentSession's static block; bridges startAgentSession to the
+ * class-private #startWith so no transport types sit on the public class. */
+let startWith: (
+  options: AgentSessionOptions,
+  createTransport: TransportFactory,
+) => Promise<AgentSession>;
+
+export class AgentSession extends TypedEmitter<AgentSessionEvents> {
+  #status: SessionStatus = "connecting";
+  #mode: AgentMode = "listening";
+  #endReason?: EndReason;
+  #sessionId: string;
+  #micMuted = false;
+  #endedByClient = false;
+  #ending?: Promise<void>;
+
+  #transport!: Transport;
+  #tools!: ClientToolDispatcher;
+  readonly #output = new AudioOutput();
+  readonly #outputAnalyser = new AudioStreamAnalyser();
+  readonly #inputAnalyser = new AudioStreamAnalyser();
+  readonly #wakeLock = new WakeLockHolder();
+
+  /** Text already delivered per agent segment, to derive deltas from full-text updates. */
+  readonly #agentSegments = new Map<string, string>();
+  /** Transcript so far, for late subscribers (getTranscript); upserted per segment. */
+  readonly #transcript: TranscriptSegment[] = [];
+  readonly #transcriptIndex = new Map<string, number>();
+  #typedMessageCount = 0;
+
+  // Data frames reach only participants already in the room — and the worker
+  // registers its handlers while starting up — so typed messages wait here
+  // until the agent publishes its first pipeline state.
+  #agentPresent = false;
+  #pendingMessages: ClientSessionMessage[] = [];
+  #joinTimer?: ReturnType<typeof setTimeout>;
+
+  private constructor(sessionToken: SessionToken) {
+    super();
+    this.#sessionId = sessionToken.session_id;
+  }
+
+  /**
+   * Obtain a session token (if needed), connect, publish the microphone and
+   * hand back a live session. Rejects with FishAgentError on session-request,
+   * permission or connect failures.
+   */
+  static async start(options: AgentSessionOptions): Promise<AgentSession> {
+    // Lazy so the transport implementation (and livekit-client) never loads
+    // in SSR bundles or in tests that inject their own transport.
+    const { LiveKitTransport } = await import("../transport/livekit.js");
+    return AgentSession.#startWith(options, () => new LiveKitTransport());
+  }
+
+  // ---- getters ----
+
+  get sessionId(): string {
+    return this.#sessionId;
+  }
+
+  get status(): SessionStatus {
+    return this.#status;
+  }
+
+  get mode(): AgentMode {
+    return this.#mode;
+  }
+
+  get isSpeaking(): boolean {
+    return this.#mode === "speaking";
+  }
+
+  get micMuted(): boolean {
+    return this.#micMuted;
+  }
+
+  get endReason(): EndReason | undefined {
+    return this.#endReason;
+  }
+
+  /**
+   * Snapshot of every transcript segment so far, in conversation order. Seed a
+   * consumer that subscribes after events already fired (e.g. a component
+   * mounted right after start), then apply live events by segmentId.
+   */
+  getTranscript(): TranscriptSegment[] {
+    return this.#transcript.map((segment) => ({ ...segment }));
+  }
+
+  // ---- text & control channel ----
+
+  /** `audio: false` asks the agent to answer this turn in text only (no TTS). */
+  sendUserMessage(text: string, options?: { audio?: boolean }): void {
+    const trimmed = text.trim();
+    if (!trimmed) {
+      return;
+    }
+    const message: ClientSessionMessage =
+      options?.audio === false
+        ? { type: "user.message", text: trimmed, audio: false }
+        : { type: "user.message", text: trimmed };
+    if (this.#agentPresent) {
+      this.#sendClientEvent(message);
+    } else {
+      this.#pendingMessages.push(message);
+    }
+    this.#recordTypedUserMessage(trimmed);
+  }
+
+  sendUserActivity(): void {
+    this.#sendClientEvent({ type: "user.activity" });
+  }
+
+  interrupt(): void {
+    this.#sendClientEvent({ type: "user.interrupt" });
+  }
+
+  registerClientTool(name: string, handler: ClientToolHandler): void {
+    this.#tools.register(name, handler);
+  }
+
+  // ---- audio ----
+
+  /**
+   * After a `microphone: false` start, the first unmute captures and publishes
+   * the microphone — the permission prompt happens here. A denial rejects with
+   * `mic_permission_denied` and the session stays muted.
+   */
+  async setMicMuted(muted: boolean): Promise<void> {
+    const previous = this.#micMuted;
+    this.#micMuted = muted;
+    try {
+      await this.#transport.setMicEnabled(!muted);
+    } catch (error) {
+      this.#micMuted = previous;
+      throw AgentSession.#asMicError(error);
+    }
+  }
+
+  /** Call from a user gesture to satisfy browser autoplay policies. */
+  async startAudio(): Promise<void> {
+    this.#outputAnalyser.resume();
+    this.#inputAnalyser.resume();
+    await this.#output.startAudio();
+  }
+
+  /**
+   * Switch the microphone mid-call. While the mic is not captured yet
+   * (`microphone: false` start, still muted) this records the preference for
+   * the first unmute. Rejects with `device_change_failed` when the device
+   * cannot be activated, switching back to the previous microphone (best
+   * effort — the transport stops the old capture before acquiring the new).
+   */
+  async setInputDevice(deviceId: string): Promise<void> {
+    try {
+      await this.#transport.setInputDevice(deviceId);
+    } catch (error) {
+      throw AgentSession.#asDeviceError(error, "Could not switch the microphone");
+    }
+  }
+
+  /**
+   * Route the agent's audio to an output device (`setSinkId`); pass `""` to
+   * return to the default device. Rejects with `device_change_failed` where
+   * the browser does not support output selection (common on mobile browsers)
+   * or the device cannot be used; playback stays on the previous device.
+   */
+  async setOutputDevice(deviceId: string): Promise<void> {
+    await this.#output.setSinkId(deviceId);
+  }
+
+  setOutputVolume(volume: number): void {
+    this.#output.setVolume(volume);
+  }
+
+  getOutputVolume(): number {
+    return this.#outputAnalyser.getVolume();
+  }
+
+  getInputVolume(): number {
+    return this.#inputAnalyser.getVolume();
+  }
+
+  getOutputFrequencyData(): Uint8Array {
+    return this.#outputAnalyser.getFrequencyData();
+  }
+
+  getInputFrequencyData(): Uint8Array {
+    return this.#inputAnalyser.getFrequencyData();
+  }
+
+  /**
+   * Escape hatch: the underlying LiveKit `Room`, for needs the session API
+   * doesn't cover (connection-quality telemetry, publishing extra tracks).
+   * Code using it couples to this SDK's transport choice and livekit-client
+   * version — prefer the session API where one exists. `undefined` after the
+   * session ends, or when a custom transport doesn't expose a room.
+   */
+  getRoom(): Room | undefined {
+    return this.#transport.getRoom?.() as Room | undefined;
+  }
+
+  // ---- lifecycle ----
+
+  end(): Promise<void> {
+    if (this.#ending) {
+      return this.#ending;
+    }
+    if (this.#status === "ended") {
+      return Promise.resolve();
+    }
+    const ending = this.#endOnce();
+    this.#ending = ending;
+    void ending.catch(() => {
+      if (this.#ending === ending) {
+        this.#ending = undefined;
+      }
+    });
+    return ending;
+  }
+
+  async #endOnce(): Promise<void> {
+    this.#endedByClient = true;
+    try {
+      // Graceful hangup over the reverse channel; participant departure is the
+      // worker-side fallback if this frame never arrives.
+      await this.#transport.sendClientEvent({ type: "user.hangup" });
+    } catch {
+      // best effort
+    }
+    await this.#transport.disconnect();
+    this.#finalize("user_hangup");
+  }
+
+  // ---- internals ----
+
+  static {
+    startWith = (options, createTransport) => AgentSession.#startWith(options, createTransport);
+  }
+
+  static async #startWith(
+    options: AgentSessionOptions,
+    createTransport: TransportFactory,
+  ): Promise<AgentSession> {
+    if (options.audio?.outputDeviceId !== undefined) {
+      // Cheap sync check first, so an unsupported browser fails before a
+      // server session is even created.
+      assertOutputSelectionSupported();
+    }
+    const sessionToken = await resolveSessionToken(options);
+    const session = new AgentSession(sessionToken);
+    if (options.audio?.outputDeviceId !== undefined) {
+      // The browser validates the device id here, before anything connects;
+      // rejects like a token failure — no events, no teardown needed yet.
+      await session.#output.setSinkId(options.audio.outputDeviceId);
+    }
+
+    for (const [key, callback] of Object.entries(options.callbacks ?? {})) {
+      const event = (key.charAt(2).toLowerCase() +
+        key.slice(3)) as keyof AgentSessionEvents;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      session.on(event, callback as any);
+    }
+
+    const transport = createTransport(sessionToken);
+    session.#transport = transport;
+    if (options.microphone === false) {
+      session.#micMuted = true;
+    }
+    session.#tools = new ClientToolDispatcher(
+      options.clientTools,
+      options.clientToolTimeoutMs ?? DEFAULT_CLIENT_TOOL_TIMEOUT_MS,
+      (message) => transport.sendClientEvent(message),
+      (error) => session.emit("error", error),
+    );
+
+    try {
+      await transport.connect(sessionToken, {
+        inputDeviceId: options.audio?.inputDeviceId,
+        microphone: options.microphone,
+        callbacks: {
+          onAgentEvent: (message) => session.#handleAgentEvent(message),
+          // Mode model: "listening" is the default state; the framework's agent
+          // state supplies the thinking edge; speaking follows the playout-synced
+          // transcription segments (open = audible, closed = back to listening).
+          onAgentState: (state) => {
+            // Any published agent state proves the worker's pipeline is up and
+            // its event handlers are registered — the gate for queued messages.
+            session.#handleAgentPresent();
+            if (state === "thinking") {
+              session.#setMode("thinking");
+            }
+          },
+          onTranscription: (update) => session.#handleTranscription(update),
+          onOutputStream: (stream) => {
+            session.#output.setStream(stream);
+            session.#outputAnalyser.setStream(stream);
+          },
+          onInputStream: (stream) => session.#inputAnalyser.setStream(stream),
+          onConnectionState: (state, reason) => session.#handleConnectionState(state, reason),
+        },
+      });
+    } catch (error) {
+      // connect() can fail after the room is already joined (e.g. mic capture);
+      // tear the transport down or the room stays connected with no owner.
+      await session.#transport.disconnect().catch(() => undefined);
+      session.#finalize("connection_lost");
+      throw AgentSession.#asStartError(error);
+    }
+
+    if (session.#status === "connecting") {
+      session.#setStatus("connected");
+      session.emit("connect", { sessionId: session.#sessionId });
+    }
+    if (session.#status !== "ended" && options.wakeLock !== false) {
+      session.#wakeLock.acquire();
+    }
+    if (!session.#agentPresent && session.#status === "connected") {
+      session.#joinTimer = setTimeout(() => session.#abandonAgentWait(), AGENT_JOIN_TIMEOUT_MS);
+    }
+    return session;
+  }
+
+  static #asStartError(error: unknown): FishAgentError {
+    if (error instanceof FishAgentError) {
+      return error;
+    }
+    if (error instanceof Error && error.name === "NotAllowedError") {
+      return new FishAgentError("mic_permission_denied", "Microphone permission was denied", {
+        cause: error,
+      });
+    }
+    return new FishAgentError("connection_failed", "Could not establish the realtime session", {
+      cause: error,
+    });
+  }
+
+  static #asMicError(error: unknown): FishAgentError {
+    if (error instanceof FishAgentError) {
+      return error;
+    }
+    if (error instanceof Error && error.name === "NotAllowedError") {
+      return new FishAgentError("mic_permission_denied", "Microphone permission was denied", {
+        cause: error,
+      });
+    }
+    if (
+      error instanceof Error &&
+      (error.name === "OverconstrainedError" || error.name === "NotFoundError")
+    ) {
+      // Device/constraint failures surface here both for a preference recorded
+      // while muted and for a first capture with no usable microphone — keep
+      // the device error code, with a message that fits either.
+      return new FishAgentError(
+        "device_change_failed",
+        "No usable microphone could be activated",
+        { cause: error },
+      );
+    }
+    return new FishAgentError("connection_failed", "Could not toggle the microphone", {
+      cause: error,
+    });
+  }
+
+  static #asDeviceError(error: unknown, message: string): FishAgentError {
+    if (error instanceof FishAgentError) {
+      return error;
+    }
+    return new FishAgentError("device_change_failed", message, { cause: error });
+  }
+
+  #sendClientEvent(message: Parameters<Transport["sendClientEvent"]>[0]): void {
+    void this.#transport.sendClientEvent(message).catch((error: unknown) => {
+      this.emit(
+        "error",
+        new FishAgentError("connection_failed", "Failed to send to the agent", { cause: error }),
+      );
+    });
+  }
+
+  #setStatus(status: SessionStatus): void {
+    if (this.#status !== status) {
+      this.#status = status;
+      this.emit("statusChange", status);
+    }
+  }
+
+  #setMode(mode: AgentMode): void {
+    if (this.#mode !== mode) {
+      this.#mode = mode;
+      this.emit("modeChange", mode);
+    }
+  }
+
+  #handleAgentPresent(): void {
+    if (this.#agentPresent) {
+      return;
+    }
+    this.#agentPresent = true;
+    if (this.#joinTimer) {
+      clearTimeout(this.#joinTimer);
+      this.#joinTimer = undefined;
+    }
+    const pending = this.#pendingMessages;
+    this.#pendingMessages = [];
+    for (const message of pending) {
+      this.#sendClientEvent(message);
+    }
+  }
+
+  #abandonAgentWait(): void {
+    if (this.#status === "ended" || this.#agentPresent) {
+      return;
+    }
+    this.emit(
+      "error",
+      new FishAgentError("connection_failed", "The agent did not join the session"),
+    );
+    void this.#transport.disconnect().catch(() => {});
+    this.#finalize("connection_lost");
+  }
+
+  #handleConnectionState(state: TransportConnectionState, reason?: string): void {
+    if (this.#status === "ended") {
+      return;
+    }
+    if (state === "reconnecting") {
+      this.#setStatus("reconnecting");
+      return;
+    }
+    if (state === "connected") {
+      if (this.#status === "reconnecting") {
+        this.#setStatus("connected");
+      }
+      return;
+    }
+    // AGENT_LEFT = the agent participant hung up (worker ends without closing
+    // the room). Room deletion covers server-forced ends and the duration
+    // cap — the protocol has no session.ended message to tell these apart.
+    const ended = this.#endedByClient
+      ? "user_hangup"
+      : reason === "AGENT_LEFT" || reason === "ROOM_DELETED" || reason === "ROOM_CLOSED"
+        ? "agent_hangup"
+        : "connection_lost";
+    this.#finalize(ended);
+  }
+
+  #finalize(reason: EndReason): void {
+    if (this.#status === "ended") {
+      return;
+    }
+    if (this.#joinTimer) {
+      clearTimeout(this.#joinTimer);
+      this.#joinTimer = undefined;
+    }
+    this.#endReason = reason;
+    this.#setStatus("ended");
+    this.#wakeLock.release();
+    this.#output.dispose();
+    this.#outputAnalyser.dispose();
+    this.#inputAnalyser.dispose();
+    this.emit("disconnect", { reason });
+  }
+
+  #handleAgentEvent(message: AgentSessionMessage): void {
+    switch (message.type) {
+      case "client_tool.call":
+        void this.#tools.dispatch(message);
+        return;
+      case "tool.started":
+        this.emit("toolCallStarted", {
+          callId: message.callId,
+          toolName: message.toolName,
+          source: message.toolSource,
+          input: message.input,
+          inputTruncated: message.inputTruncated === true,
+        });
+        return;
+      case "tool.completed":
+        this.emit("toolCallCompleted", {
+          callId: message.callId,
+          toolName: message.toolName,
+          source: message.toolSource,
+          output: message.output,
+          outputTruncated: message.outputTruncated === true,
+        });
+        return;
+      case "tool.failed":
+        this.emit("toolCallFailed", {
+          callId: message.callId,
+          toolName: message.toolName,
+          source: message.toolSource,
+          error: message.error,
+        });
+        return;
+      case "error":
+        this.emit(
+          "error",
+          message.code === "provider_error"
+            ? new FishAgentError("provider_error", "An upstream provider failed during the session")
+            : new FishAgentError("internal_error", "The agent runtime hit an internal error"),
+        );
+        return;
+      default:
+        // Forward compatibility: unknown message types are ignored by contract.
+        return;
+    }
+  }
+
+  #recordSegment(role: "user" | "agent", segmentId: string, text: string, final: boolean): void {
+    const key = `${role}:${segmentId}`;
+    const index = this.#transcriptIndex.get(key);
+    if (index === undefined) {
+      this.#transcriptIndex.set(key, this.#transcript.length);
+      this.#transcript.push({ segmentId, role, text, final });
+    } else {
+      this.#transcript[index] = { segmentId, role, text, final };
+    }
+  }
+
+  #handleTranscription(update: TranscriptionSegmentUpdate): void {
+    if (update.role === "user") {
+      this.#recordSegment("user", update.segmentId, update.text, update.final);
+      this.emit("userTranscript", {
+        segmentId: update.segmentId,
+        text: update.text,
+        final: update.final,
+      });
+      if (update.final) {
+        this.emit("message", { role: "user", text: update.text });
+      }
+      return;
+    }
+    // Agent speech: playout-synced, so streaming text means the agent is audibly
+    // speaking; the segment closing means playout finished — back to listening.
+    this.#setMode(update.final ? "listening" : "speaking");
+    this.#recordSegment("agent", update.segmentId, update.text, update.final);
+    const previous = this.#agentSegments.get(update.segmentId) ?? "";
+    const delta = update.text.startsWith(previous) ? update.text.slice(previous.length) : update.text;
+    this.#agentSegments.set(update.segmentId, update.text);
+    if (delta) {
+      this.emit("agentResponseDelta", { segmentId: update.segmentId, delta, text: update.text });
+    }
+    if (update.final) {
+      this.#agentSegments.delete(update.segmentId);
+      this.emit("agentResponse", { segmentId: update.segmentId, text: update.text });
+      this.emit("message", { role: "agent", text: update.text });
+    }
+  }
+
+  // Typed messages are not echoed by the server; the sender finalizes its own bubble.
+  #recordTypedUserMessage(text: string): void {
+    const segmentId = `typed_${++this.#typedMessageCount}`;
+    this.#recordSegment("user", segmentId, text, true);
+    this.emit("userTranscript", { segmentId, text, final: true });
+    this.emit("message", { role: "user", text });
+  }
+}
+
+/** Internal seam: identical to AgentSession.start but with an injectable transport. */
+export function startAgentSession(
+  options: AgentSessionOptions,
+  createTransport: TransportFactory,
+): Promise<AgentSession> {
+  return startWith(options, createTransport);
+}

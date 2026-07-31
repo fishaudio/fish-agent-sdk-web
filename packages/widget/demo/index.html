@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fish Agent Widget — demo</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        background: linear-gradient(160deg, #f7f6f4, #e9eef6);
+        color: #1c1c1c;
+      }
+      main {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 64px 24px;
+      }
+      h1 {
+        font-size: 28px;
+      }
+      p {
+        color: #555;
+        line-height: 1.6;
+      }
+      .drivers {
+        margin-top: 24px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .drivers button {
+        border: 1px solid #d6d3ce;
+        background: #fff;
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 13px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Acme Dental — demo host page</h1>
+      <p>
+        This page plays the customer's website. The floating widget in the corner is
+        <code>&lt;fish-agent&gt;</code> running against a scripted mock of the client SDK —
+        no network, no microphone.
+      </p>
+      <div class="drivers">
+        <button id="drive-user-speech">Simulate user speech</button>
+        <button id="drive-expand">Dispatch fish-agent:expand</button>
+      </div>
+    </main>
+
+    <fish-agent
+      agent-id="demo_agent"
+      agent-name="Aria"
+      consent="true"
+      proactive-message="Hi, I’m Aria 👋 Ask me anything about Fish Audio — by voice or text."
+      proactive-delay="1"
+    ></fish-agent>
+
+    <script type="module" src="/main.ts"></script>
+  </body>
+</html>

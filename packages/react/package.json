@@ -1,0 +1,71 @@
+{
+  "name": "@fishaudio/agent-react",
+  "version": "0.0.1",
+  "description": "React hooks and components for Fish Audio voice agents.",
+  "keywords": [
+    "fish-audio",
+    "voice",
+    "agent",
+    "react",
+    "hooks",
+    "webrtc"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fishaudio/fish-agent-sdk-web.git",
+    "directory": "packages/react"
+  },
+  "homepage": "https://github.com/fishaudio/fish-agent-sdk-web/tree/main/packages/react#readme",
+  "bugs": "https://github.com/fishaudio/fish-agent-sdk-web/issues",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "pnpm build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fishaudio/agent-client": "workspace:^"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.1.0",
+    "jsdom": "^26.1.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.5"
+  }
+}

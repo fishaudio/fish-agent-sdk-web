@@ -1,0 +1,57 @@
+{
+  "name": "@fishaudio/agent-widget-embed",
+  "version": "0.0.1",
+  "description": "One-script CDN build of the Fish Audio <fish-agent> widget: loading it registers the element.",
+  "keywords": [
+    "fish-audio",
+    "voice",
+    "agent",
+    "widget",
+    "embed",
+    "cdn"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fishaudio/fish-agent-sdk-web.git",
+    "directory": "packages/widget-embed"
+  },
+  "homepage": "https://github.com/fishaudio/fish-agent-sdk-web/tree/main/packages/widget-embed#readme",
+  "bugs": "https://github.com/fishaudio/fish-agent-sdk-web/issues",
+  "sideEffects": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "unpkg": "./dist/index.js",
+  "jsdelivr": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "THIRD-PARTY-NOTICES.txt"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "pnpm build",
+    "test": "echo \"covered by @fishaudio/agent-widget\" && exit 0",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fishaudio/agent-widget": "workspace:^"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3"
+  }
+}
