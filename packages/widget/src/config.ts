@@ -3,7 +3,16 @@
  * HTML attribute > remote widget config (platform endpoint) > built-in default.
  */
 
+import type { SessionToken } from "@fishaudio/agent-client";
+
 export type WidgetPosition = "bottom-right" | "bottom-left" | "top-right" | "top-left";
+
+/**
+ * Host-supplied token fetcher for private agents, called before every session
+ * start. Fetch the session token from your backend — with whatever auth
+ * headers, body, or credentials the request needs — and return it verbatim.
+ */
+export type SessionTokenProvider = () => SessionToken | Promise<SessionToken>;
 
 export interface WidgetTextContents {
   statusConnecting: string;
@@ -87,7 +96,6 @@ export const DEFAULT_TEXTS: WidgetTextContents = {
 /** Raw attribute values; `undefined` = attribute absent (lets remote config apply). */
 export interface WidgetAttributes {
   agentId?: string;
-  tokenEndpoint?: string;
   serverUrl?: string;
   userId?: string;
   language?: string;
@@ -124,7 +132,6 @@ export interface RemoteWidgetConfig {
 /** Fully resolved, render-ready settings. */
 export interface WidgetSettings {
   agentId?: string;
-  tokenEndpoint?: string;
   serverUrl?: string;
   userId?: string;
   language?: string;
@@ -145,7 +152,6 @@ export interface WidgetSettings {
 
 export const OBSERVED_ATTRIBUTES = [
   "agent-id",
-  "token-endpoint",
   "server-url",
   "user-id",
   "language",
@@ -210,7 +216,6 @@ export function parseAttributes(source: AttributeSource): WidgetAttributes {
   const positionRaw = text(source, "position") as WidgetPosition | undefined;
   return {
     agentId: text(source, "agent-id"),
-    tokenEndpoint: text(source, "token-endpoint"),
     serverUrl: text(source, "server-url"),
     userId: text(source, "user-id"),
     language: text(source, "language"),
@@ -251,7 +256,6 @@ export function resolveSettings(
   }
   return {
     agentId: attrs.agentId,
-    tokenEndpoint: attrs.tokenEndpoint,
     serverUrl: attrs.serverUrl,
     userId: attrs.userId,
     language: attrs.language,

@@ -1,5 +1,5 @@
 import { h, render } from "preact";
-import { OBSERVED_ATTRIBUTES, parseAttributes } from "./config.js";
+import { OBSERVED_ATTRIBUTES, parseAttributes, type SessionTokenProvider } from "./config.js";
 import styles from "./styles.js";
 import { FishAgentWidget } from "./widget.js";
 
@@ -10,6 +10,10 @@ const Base = (typeof HTMLElement !== "undefined" ? HTMLElement : class {}) as ty
 
 export class FishAgentElement extends Base {
   static observedAttributes = [...OBSERVED_ATTRIBUTES];
+
+  // `declare` so upgrade doesn't re-initialize the field and clobber a value
+  // the page set before this element was defined.
+  declare sessionTokenProvider?: SessionTokenProvider;
 
   #container?: HTMLElement;
 

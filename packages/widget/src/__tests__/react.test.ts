@@ -78,6 +78,20 @@ describe("FishAgentWidget (React adapter)", () => {
     expect(onCall).toHaveBeenCalledTimes(1);
   });
 
+  it("mirrors the sessionTokenProvider prop onto the element property", async () => {
+    const provider = vi.fn();
+    await act(async () => {
+      root.render(createElement(FishAgentWidget, { sessionTokenProvider: provider }));
+    });
+    const element = host() as HTMLElement & { sessionTokenProvider?: unknown };
+    expect(element.sessionTokenProvider).toBe(provider);
+
+    await act(async () => {
+      root.render(createElement(FishAgentWidget, { agentId: "a1" }));
+    });
+    expect(element.sessionTokenProvider).toBeUndefined();
+  });
+
   it("forwards page events to callback props", async () => {
     const onConnect = vi.fn();
     const onDisconnect = vi.fn();

@@ -48,8 +48,7 @@ for pages that use the CDN script and install the package only for its types.
 
 | Attribute | Description |
 |---|---|
-| `agent-id` | Public agent id. Exactly one of `agent-id` / `token-endpoint` is required. |
-| `token-endpoint` | URL on **your** backend; the widget POSTs it and expects a session-token JSON (private agents — see below). |
+| `agent-id` | Public agent id. Required unless the `sessionTokenProvider` property is set (private agents — see below). |
 | `server-url` | Fish API base override (default `https://api.fish.audio`). |
 | `agent-name` | Display name in the header. |
 | `greeting` | Home-screen headline. |
@@ -110,8 +109,25 @@ document.querySelector("fish-agent").addEventListener("fish-agent:call", (event)
 
 ## Private agents
 
-Keep the agent non-public and give the widget a `token-endpoint` instead of an `agent-id`. Your backend holds the API key, creates the session (`POST /v1/agent/sessions`), and returns the session-token JSON verbatim; the widget POSTs the endpoint each time a call starts. Origin checks, user auth and rate limiting on that endpoint are yours.
+Keep the agent non-public and set `sessionTokenProvider` instead of an
+`agent-id` — a JS property on the element (functions can't be attributes),
+called before every session start. Fetch the session token from your backend
+with whatever auth the request needs and return the JSON verbatim; your
+backend holds the API key and creates the session (`POST /v1/agent/sessions`).
+Origin checks, user auth and rate limiting on that endpoint are yours.
 
 ```html
-<fish-agent token-endpoint="/api/voice-session" agent-name="Support"></fish-agent>
+<fish-agent agent-name="Support"></fish-agent>
+<script>
+  document.querySelector("fish-agent").sessionTokenProvider = async () => {
+    const response = await fetch("/api/voice-session", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${appSession.token}` },
+    });
+    return response.json(); // the session-token JSON, verbatim
+  };
+</script>
 ```
+
+React apps pass the same function as the `sessionTokenProvider` prop on
+`<FishAgentWidget>`.

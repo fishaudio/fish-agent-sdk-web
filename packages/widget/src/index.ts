@@ -2,6 +2,7 @@ export { FishAgentElement, registerWidget } from "./element.js";
 export {
   DEFAULT_TEXTS,
   type RemoteWidgetConfig,
+  type SessionTokenProvider,
   type WidgetAttributes,
   type WidgetPosition,
   type WidgetSettings,

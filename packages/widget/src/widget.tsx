@@ -3,13 +3,13 @@ import {
   type AgentMode,
   type AgentSessionOptions,
   type EndReason,
-  type SessionToken,
 } from "@fishaudio/agent-client";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import {
   parseAttributes,
   resolveSettings,
   type RemoteWidgetConfig,
+  type SessionTokenProvider,
   type WidgetAttributes,
   type WidgetSettings,
 } from "./config.js";
@@ -26,7 +26,7 @@ import {
 } from "./views.js";
 
 export interface FishAgentWidgetProps {
-  host: HTMLElement;
+  host: HTMLElement & { sessionTokenProvider?: SessionTokenProvider };
   attributes: WidgetAttributes;
 }
 
@@ -50,17 +50,6 @@ function storageSet(storage: () => Storage, key: string, value: string): void {
   } catch {
     // storage unavailable (private mode / sandbox) — proceed without memory
   }
-}
-
-async function fetchSessionToken(endpoint: string): Promise<SessionToken> {
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: { Accept: "application/json" },
-  });
-  if (!response.ok) {
-    throw new Error(`Token endpoint responded with HTTP ${response.status}`);
-  }
-  return (await response.json()) as SessionToken;
 }
 
 export function FishAgentWidget({ host, attributes }: FishAgentWidgetProps) {
@@ -216,8 +205,8 @@ export function FishAgentWidget({ host, attributes }: FishAgentWidgetProps) {
 
     try {
       const options: AgentSessionOptions = { microphone: kind === "voice" };
-      if (settings.tokenEndpoint) {
-        options.sessionToken = await fetchSessionToken(settings.tokenEndpoint);
+      if (host.sessionTokenProvider) {
+        options.sessionToken = await host.sessionTokenProvider();
       } else if (settings.agentId) {
         options.agentId = settings.agentId;
         if (settings.serverUrl) {
@@ -233,7 +222,9 @@ export function FishAgentWidget({ host, attributes }: FishAgentWidgetProps) {
           options.endUserId = settings.userId;
         }
       } else {
-        console.error("[fish-agent] set agent-id or token-endpoint to start a session");
+        console.error(
+          "[fish-agent] set agent-id or sessionTokenProvider to start a session",
+        );
         throw new Error("missing configuration");
       }
 

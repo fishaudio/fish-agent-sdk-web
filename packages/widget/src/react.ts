@@ -15,13 +15,12 @@ import {
   type ReactElement,
 } from "react";
 import type { AgentSessionOptions, EndReason } from "@fishaudio/agent-client";
-import { registerWidget } from "./element.js";
-import type { WidgetPosition, WidgetTextContents } from "./config.js";
+import { registerWidget, type FishAgentElement } from "./element.js";
+import type { SessionTokenProvider, WidgetPosition, WidgetTextContents } from "./config.js";
 
 /** Attributes of the raw `<fish-agent>` element (see docs/widget.md). */
 export interface FishAgentAttributes {
   "agent-id"?: string;
-  "token-endpoint"?: string;
   "server-url"?: string;
   "user-id"?: string;
   language?: string;
@@ -70,10 +69,10 @@ declare global {
 }
 
 export interface FishAgentWidgetProps {
-  /** Public agent id. Exactly one of `agentId` / `tokenEndpoint` is required. */
+  /** Public agent id. Exactly one of `agentId` / `sessionTokenProvider` is required. */
   agentId?: string;
-  /** URL on your backend that POSTs back a session token verbatim (private agents). */
-  tokenEndpoint?: string;
+  /** Fetches the session token from your backend (private agents); called before every session start. */
+  sessionTokenProvider?: SessionTokenProvider;
   serverUrl?: string;
   /** Your end-user identifier, stored on the session. */
   userId?: string;
@@ -156,12 +155,20 @@ export const FishAgentWidget = forwardRef<HTMLElement, FishAgentWidgetProps>(
       };
     }, []);
 
+    // A function can't cross the attribute face — mirror it as an element
+    // property on every render.
+    useEffect(() => {
+      const host = hostRef.current as FishAgentElement | null;
+      if (host) {
+        host.sessionTokenProvider = props.sessionTokenProvider;
+      }
+    });
+
     return createElement("fish-agent", {
       ref: hostRef,
       className: props.className,
       style: props.style,
       "agent-id": props.agentId,
-      "token-endpoint": props.tokenEndpoint,
       "server-url": props.serverUrl,
       "user-id": props.userId,
       language: props.language,

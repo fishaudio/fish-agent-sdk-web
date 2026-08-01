@@ -198,6 +198,26 @@ describe("<fish-agent>", () => {
     expect(bubble.textContent).toBe("Book it");
   });
 
+  it("starts from a host-supplied sessionTokenProvider without any attributes", async () => {
+    const token = {
+      session_id: "sess_1",
+      transport: "livekit" as const,
+      livekit_url: "wss://livekit.fish.test",
+      token: "jwt",
+      expires_at: "2099-01-01T00:00:00Z",
+      max_duration_seconds: 600,
+    };
+    const { FishAgentElement } = await import("../element.js");
+    const element = (await mount({})) as InstanceType<typeof FishAgentElement>;
+    element.sessionTokenProvider = async () => token;
+    await openPanel(element);
+    click($(element, ".fa-cta"));
+    await tick();
+    expect(startMock).toHaveBeenCalledTimes(1);
+    expect(startMock.mock.calls[0]![0]).toMatchObject({ sessionToken: token });
+    expect(startMock.mock.calls[0]![0]).not.toHaveProperty("agentId");
+  });
+
   it("lets the host inject start options via fish-agent:call", async () => {
     const element = await mount({ "agent-id": "agent_1" });
     const lookup = () => "ok";
