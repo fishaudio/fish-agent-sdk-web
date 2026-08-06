@@ -45,6 +45,15 @@ export interface TransportConnectOptions {
 }
 
 export interface Transport {
+  /**
+   * Begin microphone capture immediately, inside the user gesture that started
+   * the call — browsers (Safari, in-app WebViews) auto-deny a later
+   * getUserMedia without showing a prompt once the gesture's transient
+   * activation expires behind the token/connect round-trips. `connect()`
+   * consumes the pending capture (denials surface there); `disconnect()`
+   * releases a capture that was never published.
+   */
+  prepareMicrophone?(options: { inputDeviceId?: string }): void;
   connect(sessionToken: SessionToken, options: TransportConnectOptions): Promise<void>;
   disconnect(): Promise<void>;
   setMicEnabled(enabled: boolean): Promise<void>;
@@ -63,4 +72,6 @@ export interface Transport {
   getRoom?(): unknown;
 }
 
-export type TransportFactory = (sessionToken: SessionToken) => Transport;
+// No arguments: the transport must exist before the session token does, so
+// prepareMicrophone can run inside the user gesture that started the call.
+export type TransportFactory = () => Transport;
