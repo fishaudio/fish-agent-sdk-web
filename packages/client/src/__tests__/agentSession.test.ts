@@ -36,6 +36,12 @@ class MockTransport implements Transport {
   disconnectError?: unknown;
   connectError?: unknown;
 
+  micPrepares: Array<{ inputDeviceId?: string }> = [];
+
+  prepareMicrophone(options: { inputDeviceId?: string }): void {
+    this.micPrepares.push(options);
+  }
+
   async connect(_sessionToken: SessionToken, options: TransportConnectOptions): Promise<void> {
     this.callbacks = options.callbacks;
     this.connectOptions = options;
@@ -196,6 +202,23 @@ describe("start", () => {
       startAgentSession({ sessionToken: SESSION_TOKEN, agentId: "a1" }, () => new MockTransport()),
     ).rejects.toThrow(TypeError);
     await expect(startAgentSession({}, () => new MockTransport())).rejects.toThrow(TypeError);
+  });
+
+  it("begins microphone capture at start and releases it when the token exchange fails", async () => {
+    const transport = new MockTransport();
+    await expect(startAgentSession({}, () => transport)).rejects.toThrow(TypeError);
+    expect(transport.micPrepares).toHaveLength(1);
+    expect(transport.disconnectCalls).toBe(1);
+  });
+
+  it("forwards the configured input device to the gesture-time capture", async () => {
+    const { transport } = await start({ audio: { inputDeviceId: "mic-7" } });
+    expect(transport.micPrepares).toEqual([{ inputDeviceId: "mic-7" }]);
+  });
+
+  it("leaves the microphone untouched for microphone: false starts", async () => {
+    const { transport } = await start({ microphone: false });
+    expect(transport.micPrepares).toEqual([]);
   });
 
   it("subscribes callbacks sugar early enough to observe connect", async () => {

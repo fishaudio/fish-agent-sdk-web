@@ -310,12 +310,28 @@ export class AgentSession extends TypedEmitter<AgentSessionEvents> {
       // server session is even created.
       assertOutputSelectionSupported();
     }
-    const sessionToken = await resolveSessionToken(options);
-    const session = new AgentSession(sessionToken);
-    if (options.audio?.outputDeviceId !== undefined) {
-      // The browser validates the device id here, before anything connects;
-      // rejects like a token failure — no events, no teardown needed yet.
-      await session.#output.setSinkId(options.audio.outputDeviceId);
+    const transport = createTransport();
+    if (options.microphone !== false) {
+      // Inside the user gesture that called start(), before the token
+      // round-trip pushes getUserMedia out of the gesture's transient
+      // activation (see Transport.prepareMicrophone). A denial surfaces in
+      // transport.connect().
+      transport.prepareMicrophone?.({ inputDeviceId: options.audio?.inputDeviceId });
+    }
+    let sessionToken: SessionToken;
+    let session: AgentSession;
+    try {
+      sessionToken = await resolveSessionToken(options);
+      session = new AgentSession(sessionToken);
+      if (options.audio?.outputDeviceId !== undefined) {
+        // The browser validates the device id here, before anything connects;
+        // rejects like a token failure — no events yet.
+        await session.#output.setSinkId(options.audio.outputDeviceId);
+      }
+    } catch (error) {
+      // The gesture-time capture must not outlive a failed start.
+      await transport.disconnect().catch(() => undefined);
+      throw error;
     }
 
     for (const [key, callback] of Object.entries(options.callbacks ?? {})) {
@@ -325,7 +341,6 @@ export class AgentSession extends TypedEmitter<AgentSessionEvents> {
       session.on(event, callback as any);
     }
 
-    const transport = createTransport(sessionToken);
     session.#transport = transport;
     if (options.microphone === false) {
       session.#micMuted = true;

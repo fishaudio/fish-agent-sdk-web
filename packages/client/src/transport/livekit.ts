@@ -1,10 +1,12 @@
 import {
   ConnectionState,
+  createLocalAudioTrack,
   DisconnectReason,
   Room,
   RoomEvent,
   Track,
   TrackEvent,
+  type LocalAudioTrack,
   type RemoteTrack,
 } from "livekit-client";
 import {
@@ -25,11 +27,29 @@ function hasMessageType(value: unknown): value is { type: string } {
   );
 }
 
+function captureMicrophone(inputDeviceId?: string): Promise<LocalAudioTrack> {
+  return createLocalAudioTrack({
+    deviceId: inputDeviceId,
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+  });
+}
+
 /** Sole production Transport. LiveKit vocabulary must not escape this file,
  * except the `Room` handed out through the `getRoom()` escape hatch. */
 export class LiveKitTransport implements Transport {
   private room?: Room;
   private callbacks?: TransportCallbacks;
+  private pendingMicTrack?: Promise<LocalAudioTrack>;
+
+  prepareMicrophone(options: { inputDeviceId?: string }): void {
+    const pending = captureMicrophone(options.inputDeviceId);
+    // A denial surfaces where connect() awaits the track, never as an
+    // unhandled rejection here.
+    pending.catch(() => undefined);
+    this.pendingMicTrack = pending;
+  }
 
   async connect(sessionToken: SessionToken, options: TransportConnectOptions): Promise<void> {
     this.callbacks = options.callbacks;
@@ -142,6 +162,18 @@ export class LiveKitTransport implements Transport {
       }
     });
 
+    let micTrack: LocalAudioTrack | undefined;
+    if (options.microphone !== false) {
+      // Usually settled long before this point: the capture starts inside the
+      // user gesture (prepareMicrophone). Awaited before joining the room so a
+      // denial fails the start without ever dispatching an agent. The promise
+      // stays in pendingMicTrack until the room owns the track, so disconnect()
+      // can release it after any failure in between.
+      const pending = this.pendingMicTrack ?? captureMicrophone(options.inputDeviceId);
+      this.pendingMicTrack = pending;
+      micTrack = await pending;
+    }
+
     try {
       await room.connect(sessionToken.livekit_url, sessionToken.token);
     } catch (cause) {
@@ -157,8 +189,9 @@ export class LiveKitTransport implements Transport {
         this.callbacks?.onAgentState(state);
       }
     }
-    if (options.microphone !== false) {
-      await room.localParticipant.setMicrophoneEnabled(true);
+    if (micTrack) {
+      await room.localParticipant.publishTrack(micTrack);
+      this.pendingMicTrack = undefined;
       this.publishInputStream();
     }
   }
@@ -169,6 +202,11 @@ export class LiveKitTransport implements Transport {
   }
 
   async disconnect(): Promise<void> {
+    // A capture the room never took ownership of (start failed between the
+    // gesture-time capture and publish) is invisible to room.disconnect().
+    const pendingMic = this.pendingMicTrack;
+    this.pendingMicTrack = undefined;
+    void pendingMic?.then((track) => track.stop()).catch(() => undefined);
     const room = this.room;
     this.room = undefined;
     this.callbacks = undefined;
