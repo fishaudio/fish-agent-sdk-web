@@ -21,8 +21,8 @@ export type SessionToken = LiveKitSessionToken;
 /**
  * ISO 639-1 code from the supported set; the server rejects anything else
  * (names, endonyms, region variants). Pins STT routing, TTS voice, and the
- * default reply language. Omit to use the agent's configured behavior,
- * including automatic language detection when enabled.
+ * default reply language. Omit to use the agent's configured speaking
+ * language.
  */
 export type SessionLanguage = "en" | "ja" | "zh" | "ko" | "es" | "fr" | "de";
 
