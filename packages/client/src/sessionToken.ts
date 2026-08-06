@@ -18,7 +18,7 @@ export interface SessionRequestOptions {
   /** Session token created by the host backend, passed through verbatim. */
   sessionToken?: SessionToken;
   serverUrl?: string;
-  /** Sugar for `overrides.language`; pair with a voice in that language. */
+  /** Sugar for `overrides.language`; an explicit override wins. Pair with a voice in that language. */
   language?: SessionLanguage;
   /**
    * IANA timezone for the agent's sense of local time in this session. Omit to
@@ -95,13 +95,16 @@ function detectClientTimezone(): string | undefined {
 async function createPublicSession(options: SessionRequestOptions): Promise<SessionToken> {
   const serverUrl = (options.serverUrl ?? DEFAULT_SERVER_URL).replace(/\/$/, "");
   const clientTimezone = detectClientTimezone();
+  const overrides: SessionOverrides | undefined =
+    options.language || options.overrides
+      ? { ...(options.language ? { language: options.language } : {}), ...options.overrides }
+      : undefined;
   const request: AgentSessionCreateRequest = {
     agent_id: options.agentId as string,
-    ...(options.language ? { language: options.language } : {}),
     ...(options.timezone ? { timezone: options.timezone } : {}),
     ...(clientTimezone ? { client_timezone: clientTimezone } : {}),
     ...(options.worldContext !== undefined ? { world_context: options.worldContext } : {}),
-    ...(options.overrides ? { overrides: options.overrides } : {}),
+    ...(overrides ? { overrides } : {}),
     ...(options.dynamicVariables ? { dynamic_variables: options.dynamicVariables } : {}),
     ...(options.endUserId ? { end_user_id: options.endUserId } : {}),
     ...(options.metadata ? { metadata: options.metadata } : {}),
