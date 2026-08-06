@@ -2,6 +2,15 @@
   "$schema": "https://unpkg.com/@changesets/config@3.1.1/schema.json",
   "changelog": "@changesets/cli/changelog",
   "commit": false,
+  "fixed": [
+    [
+      "@fishaudio/agent-protocol",
+      "@fishaudio/agent-client",
+      "@fishaudio/agent-react",
+      "@fishaudio/agent-widget",
+      "@fishaudio/agent-widget-embed"
+    ]
+  ],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
