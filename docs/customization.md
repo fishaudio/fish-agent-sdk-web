@@ -18,7 +18,7 @@ const session = await AgentSession.start({
 
 ## Language
 
-`language` accepts an ISO 639-1 code from the supported set — `en`, `ja`, `zh`, `ko`, `es`, `fr`, `de`. Anything else (language names like `"Chinese"`, endonyms like `"中文"`, region variants like `"zh-CN"`) fails session creation with HTTP 422; values are never best-effort-mapped. Omit it to use the agent's configured behavior, including automatic language detection when the agent enables it.
+`language` accepts an ISO 639-1 code from the supported set — `en`, `ja`, `zh`, `ko`, `es`, `fr`, `de`. Anything else (language names like `"Chinese"`, endonyms like `"中文"`, region variants like `"zh-CN"`) fails session creation with HTTP 422; values are never best-effort-mapped. Omit it to use the agent's configured speaking language.
 
 Pinning a language sets the agent's default reply language, routes the speech recognizer to a model that covers it, and selects a matching built-in voice where one exists. An explicit user request mid-conversation ("please speak English") still wins over the pinned default.
 
