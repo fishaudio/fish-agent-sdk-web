@@ -26,12 +26,18 @@ export type SessionToken = LiveKitSessionToken;
  */
 export type SessionLanguage = "en" | "ja" | "zh" | "ko" | "es" | "fr" | "de";
 
-/** Per-session config overrides; each field must be allow-listed in the agent's settings. */
+/**
+ * Per-session config overrides; each field must be enabled on the agent.
+ * Keyless (public) creation accepts only `language` and `voice_id`.
+ */
 export interface SessionOverrides {
+  /** Verbatim opener; mutually exclusive with `first_message_prompt`. */
   first_message?: string;
+  /** Instructions the agent generates its opener from. */
+  first_message_prompt?: string;
   system_prompt?: string;
   /** TTS voice model id. Voices bias pronunciation toward their own language — pair with `language`. */
-  voice_profile_id?: string;
+  voice_id?: string;
   language?: SessionLanguage;
 }
 
@@ -43,8 +49,6 @@ export interface AgentSessionCreateRequest {
    * rejects it, so anonymous visitors cannot control dashboard titles.
    */
   name?: string;
-  /** Sugar for `overrides.language`; gated by the same allowlist entry. */
-  language?: SessionLanguage;
   /**
    * IANA timezone (e.g. "Asia/Shanghai") anchoring the agent's sense of local
    * time — "today", "now", relative dates. Top of the resolution chain; the

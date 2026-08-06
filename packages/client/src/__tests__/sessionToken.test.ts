@@ -42,14 +42,27 @@ describe("public session request", () => {
     );
     expect(JSON.parse(init.body as string)).toEqual({
       agent_id: "agent-1",
-      language: "en",
       // Auto-filled browser hint; asserted against the test runtime's own zone.
       client_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      overrides: { first_message: "Hi {{user_name}}!" },
+      // The `language` option is client-side sugar folded into overrides.
+      overrides: { language: "en", first_message: "Hi {{user_name}}!" },
       dynamic_variables: { user_name: "Ada" },
       end_user_id: "u-1",
       metadata: { plan: "pro" },
       tool_events: false,
+    });
+  });
+
+  it("lets an explicit overrides.language win over the language option", async () => {
+    const fetchMock = stubFetch(201, SESSION_TOKEN);
+    await resolveSessionToken({
+      agentId: "a",
+      language: "en",
+      overrides: { language: "ja", voice_id: "voice-1" },
+    });
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toMatchObject({
+      overrides: { language: "ja", voice_id: "voice-1" },
     });
   });
 
