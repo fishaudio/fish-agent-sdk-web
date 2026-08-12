@@ -411,19 +411,21 @@ describe("reverse channel", () => {
     session.interrupt();
     await tick();
     expect(transport.sent).toEqual([
-      { type: "user.message", text: "hello" },
+      { type: "user.message", text: "hello", audio: false },
       { type: "user.activity" },
       { type: "user.interrupt" },
     ]);
   });
 
-  it("marks a text-only turn with audio: false and omits the field otherwise", async () => {
+  it("defaults typed turns to audio: false and omits the field for audio: true", async () => {
     const { session, transport } = await start();
-    session.sendUserMessage("quiet please", { audio: false });
+    session.sendUserMessage("quiet please");
+    session.sendUserMessage("also quiet", { audio: false });
     session.sendUserMessage("speak up", { audio: true });
     await tick();
     expect(transport.sent).toEqual([
       { type: "user.message", text: "quiet please", audio: false },
+      { type: "user.message", text: "also quiet", audio: false },
       { type: "user.message", text: "speak up" },
     ]);
   });
@@ -439,8 +441,8 @@ describe("agent presence", () => {
     transport.join();
     await tick();
     expect(transport.sent).toEqual([
-      { type: "user.message", text: "first" },
-      { type: "user.message", text: "second" },
+      { type: "user.message", text: "first", audio: false },
+      { type: "user.message", text: "second", audio: false },
     ]);
   });
 
@@ -516,7 +518,7 @@ describe("user transcripts", () => {
     session.sendUserMessage("   "); // whitespace-only: not sent, not recorded
     await tick();
 
-    expect(transport.sent).toEqual([{ type: "user.message", text: "Hi there!" }]);
+    expect(transport.sent).toEqual([{ type: "user.message", text: "Hi there!", audio: false }]);
     expect(events).toEqual([{ segmentId: "typed_1", text: "Hi there!", final: true }]);
     expect(messages).toEqual([{ role: "user", text: "Hi there!" }]);
   });

@@ -72,6 +72,7 @@ export type AgentSessionMessage =
 export type ClientSessionMessage =
   // `audio: false` asks the agent to answer this turn in text only (no TTS);
   // the reply still streams over `lk.transcription`. Absent means audio as usual.
+  // (The web SDK's `sendUserMessage` sends `audio: false` unless called with `audio: true`.)
   | { type: "user.message"; text: string; audio?: boolean }
   | { type: "user.activity" }
   | { type: "user.interrupt" }

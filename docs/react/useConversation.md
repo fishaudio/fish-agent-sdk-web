@@ -21,7 +21,7 @@ const start = async () => {
 | `mode` | `AgentMode` | `"listening" \| "thinking" \| "speaking"` — drive your talking-orb UI with this. |
 | `isSpeaking` | `boolean` | Sugar for `mode === "speaking"`. |
 | `micMuted` / `setMicMuted` | `boolean` / `(muted) => Promise<void>` | Microphone control. Mirrors the session — after a `microphone: false` start it begins `true`. |
-| `sendUserMessage` | `(text, options?) => void` | Typed user turn; the agent responds. Pass `{ audio: false }` for a text-only reply (no TTS — the response streams as transcript text only). Pair with [`useAgentMessages`](useAgentMessages.md) for a chat UI. |
+| `sendUserMessage` | `(text, options?) => void` | Typed user turn; the agent replies in text only by default (no TTS — the response streams as transcript text). Pass `{ audio: true }` to have the agent speak the reply. Pair with [`useAgentMessages`](useAgentMessages.md) for a chat UI. |
 | `sendUserActivity` | `() => void` | "User is typing" — briefly holds the agent back from speaking. |
 | `interrupt` | `() => void` | Explicitly cut the agent off. |
 | `startAudio` | `() => Promise<void>` | Unlock playback inside a user gesture if autoplay was blocked. |

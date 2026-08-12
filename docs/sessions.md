@@ -52,8 +52,8 @@ Returns a connected `AgentSession`. Rejects with a [`FishAgentError`](errors.md)
 
 ```ts
 // Conversation
-session.sendUserMessage(text);       // typed user turn, agent responds
-session.sendUserMessage(text, { audio: false }); // text-only reply: no TTS, transcript still streams
+session.sendUserMessage(text);       // typed user turn; text-only reply by default (no TTS, transcript still streams)
+session.sendUserMessage(text, { audio: true }); // have the agent speak its reply for this turn
 // Messages typed before the agent finishes joining are held and delivered
 // in order once it's ready — safe to call right after start().
 session.sendUserActivity();          // "user is typing" — suppresses agent barge-in briefly
