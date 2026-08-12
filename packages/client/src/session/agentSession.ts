@@ -152,16 +152,16 @@ export class AgentSession extends TypedEmitter<AgentSessionEvents> {
 
   // ---- text & control channel ----
 
-  /** `audio: false` asks the agent to answer this turn in text only (no TTS). */
+  /** Typed turns get a text-only reply by default (no TTS); pass `audio: true` to have the agent speak this turn. */
   sendUserMessage(text: string, options?: { audio?: boolean }): void {
     const trimmed = text.trim();
     if (!trimmed) {
       return;
     }
     const message: ClientSessionMessage =
-      options?.audio === false
-        ? { type: "user.message", text: trimmed, audio: false }
-        : { type: "user.message", text: trimmed };
+      options?.audio === true
+        ? { type: "user.message", text: trimmed }
+        : { type: "user.message", text: trimmed, audio: false };
     if (this.#agentPresent) {
       this.#sendClientEvent(message);
     } else {
