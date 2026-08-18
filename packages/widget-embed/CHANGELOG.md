@@ -1,5 +1,12 @@
 # @fishaudio/agent-widget-embed
 
+## 0.2.0
+
+### Patch Changes
+
+- Updated dependencies [d64ffb4]
+  - @fishaudio/agent-widget@0.2.0
+
 ## 0.1.0
 
 ### Minor Changes
