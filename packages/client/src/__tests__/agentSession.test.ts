@@ -6,6 +6,7 @@ import type {
 } from "@fishaudio/agent-protocol";
 import { FishAgentError } from "../errors.js";
 import { startAgentSession, type AgentSessionOptions } from "../session/agentSession.js";
+import { MAX_CLIENT_TOOL_RESULT_BYTES } from "../session/toolDispatcher.js";
 import type {
   TranscriptionSegmentUpdate,
   Transport,
@@ -78,7 +79,14 @@ class MockTransport implements Transport {
     this.micEnabled = enabled;
   }
 
+  /** Rejects the next `count` sends with this error, then delivers normally. */
+  sendError?: { error: unknown; count: number };
+
   async sendClientEvent(message: ClientSessionMessage): Promise<void> {
+    if (this.sendError && this.sendError.count > 0) {
+      this.sendError.count -= 1;
+      throw this.sendError.error;
+    }
     this.sent.push(message);
   }
 
@@ -814,6 +822,71 @@ describe("client tools", () => {
     transport.agent(call());
     await tick();
     expect(transport.sent).toEqual([{ type: "client_tool.result", callId: "call-1" }]);
+  });
+
+  it("replaces an oversized result with an error result", async () => {
+    const { session, transport } = await start({
+      clientTools: { lookup: () => ({ blob: "x".repeat(MAX_CLIENT_TOOL_RESULT_BYTES) }) },
+    });
+    const errors: FishAgentError[] = [];
+    session.on("error", (error) => errors.push(error));
+    transport.agent(call());
+    await tick();
+    expect(transport.sent).toHaveLength(1);
+    expect(transport.sent[0]).toMatchObject({
+      type: "client_tool.result",
+      callId: "call-1",
+      isError: true,
+      result: expect.stringContaining("too large"),
+    });
+    expect(errors[0]).toMatchObject({ code: "tool_failed" });
+  });
+
+  it("replaces a non-serializable result with an error result", async () => {
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+    const { transport } = await start({ clientTools: { lookup: () => circular } });
+    transport.agent(call());
+    await tick();
+    expect(transport.sent[0]).toMatchObject({
+      isError: true,
+      result: expect.stringContaining("not JSON-serializable"),
+    });
+  });
+
+  it("falls back to an error result when the result cannot be sent", async () => {
+    const { session, transport } = await start({
+      clientTools: { lookup: () => ({ ok: true }) },
+    });
+    const errors: FishAgentError[] = [];
+    session.on("error", (error) => errors.push(error));
+    transport.sendError = { error: new Error("packet too large"), count: 1 };
+    transport.agent(call());
+    await tick();
+    expect(transport.sent).toEqual([
+      {
+        type: "client_tool.result",
+        callId: "call-1",
+        isError: true,
+        result: expect.stringContaining("could not be delivered"),
+      },
+    ]);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatchObject({ code: "tool_failed" });
+  });
+
+  it("reports, without looping, when even the error result cannot be sent", async () => {
+    const { session, transport } = await start({
+      clientTools: { lookup: () => ({ ok: true }) },
+    });
+    const errors: FishAgentError[] = [];
+    session.on("error", (error) => errors.push(error));
+    transport.sendError = { error: new Error("disconnected"), count: 5 };
+    transport.agent(call());
+    await tick();
+    expect(transport.sent).toEqual([]);
+    expect(transport.sendError.count).toBe(3);
+    expect(errors.map((error) => error.code)).toEqual(["tool_failed", "tool_failed"]);
   });
 });
 
