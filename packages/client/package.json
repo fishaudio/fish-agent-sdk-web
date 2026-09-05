@@ -17,7 +17,7 @@
     "url": "git+https://github.com/fishaudio/fish-agent-sdk-web.git",
     "directory": "packages/client"
   },
-  "homepage": "https://github.com/fishaudio/fish-agent-sdk-web/tree/main/packages/client#readme",
+  "homepage": "https://docs.fish.audio/agents/deploy/web-sdk",
   "bugs": "https://github.com/fishaudio/fish-agent-sdk-web/issues",
   "type": "module",
   "sideEffects": false,

@@ -1,6 +1,6 @@
 # @fishaudio/agent-react
 
-React hooks and components for [Fish Audio](https://fish.audio) voice agents, built on [`@fishaudio/agent-client`](https://github.com/fishaudio/fish-agent-sdk-web/tree/main/packages/client).
+React hooks and components for [Fish Audio](https://fish.audio) voice agents, built on [`@fishaudio/agent-client`](https://www.npmjs.com/package/@fishaudio/agent-client).
 
 ## Installation
 
@@ -39,10 +39,6 @@ The hook ends the session automatically when the component unmounts. Start calls
 
 ## Documentation
 
-- [React overview](https://github.com/fishaudio/fish-agent-sdk-web/blob/main/docs/react/README.md) — quickstart, Next.js.
-- [`useConversation`](https://github.com/fishaudio/fish-agent-sdk-web/blob/main/docs/react/useConversation.md) — session lifecycle as a hook.
-- [Provider](https://github.com/fishaudio/fish-agent-sdk-web/blob/main/docs/react/provider.md) — share one conversation across a component tree.
-- [`useAgentMessages`](https://github.com/fishaudio/fish-agent-sdk-web/blob/main/docs/react/useAgentMessages.md) — build a streaming chat UI.
-- [Audio visualization](https://github.com/fishaudio/fish-agent-sdk-web/blob/main/docs/react/audio-visualization.md) — `useAudioLevels` and `<AgentAudioVisualizer />`.
+- [React SDK](https://docs.fish.audio/agents/deploy/react-sdk) — quickstart, Next.js, `useConversation`, the provider, `useAgentMessages`, and audio visualization.
 
-Authentication, events, client tools, and errors are documented with the [client SDK](https://github.com/fishaudio/fish-agent-sdk-web/blob/main/docs/README.md) — everything there applies here.
+Authentication, events, client tools, and errors are documented with the [Web SDK](https://docs.fish.audio/agents/deploy/web-sdk) — everything there applies here.

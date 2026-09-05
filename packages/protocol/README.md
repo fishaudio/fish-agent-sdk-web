@@ -2,7 +2,7 @@
 
 The wire contract for [Fish Audio](https://fish.audio) agent sessions: the realtime room-channel messages exchanged between the agent runtime and end-user clients, and the shapes of the session-creation exchange. TypeScript types and topic constants only — zero runtime dependencies, no code.
 
-**This is a semi-internal package.** It lives in the open so that what travels over the wire is fully auditable, and so the SDK and the agent runtime conform to one published contract — not as an API for applications. Don't depend on it directly: [`@fishaudio/agent-client`](https://github.com/fishaudio/fish-agent-sdk-web/tree/main/packages/client) already re-exports the types application code needs (`SessionToken`, `SessionOverrides`, `AgentSessionCreateRequest`). Reach for this package only when building a custom consumer of the realtime channel or auditing the protocol itself.
+**This is a semi-internal package.** It lives in the open so that what travels over the wire is fully auditable, and so the SDK and the agent runtime conform to one published contract — not as an API for applications. Don't depend on it directly: [`@fishaudio/agent-client`](https://www.npmjs.com/package/@fishaudio/agent-client) already re-exports the types application code needs (`SessionToken`, `SessionOverrides`, `AgentSessionCreateRequest`). Reach for this package only when building a custom consumer of the realtime channel or auditing the protocol itself.
 
 ## What's inside
 
