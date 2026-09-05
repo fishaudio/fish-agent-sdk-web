@@ -35,5 +35,8 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      - name: Check publish manifests
+        run: pnpm check:publish
+
       - name: Test
         run: pnpm test

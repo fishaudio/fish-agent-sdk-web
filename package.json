@@ -7,7 +7,8 @@
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
     "changeset": "changeset",
-    "release": "turbo run build && changeset publish"
+    "release": "turbo run build && node scripts/check-publish-manifests.mjs && changeset publish",
+    "check:publish": "node scripts/check-publish-manifests.mjs"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.5",
