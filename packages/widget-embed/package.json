@@ -43,6 +43,7 @@
   },
   "scripts": {
     "build": "tsup",
+    "prepack": "node ../../scripts/assert-pnpm.mjs",
     "prepublishOnly": "pnpm build",
     "test": "echo \"covered by @fishaudio/agent-widget\" && exit 0",
     "typecheck": "tsc --noEmit"

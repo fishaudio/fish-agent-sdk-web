@@ -66,6 +66,7 @@
   },
   "scripts": {
     "build": "tsup",
+    "prepack": "node ../../scripts/assert-pnpm.mjs",
     "prepublishOnly": "pnpm build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
