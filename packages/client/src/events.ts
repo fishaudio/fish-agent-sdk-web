@@ -92,3 +92,24 @@ export interface AgentSessionEvents {
 export type AgentSessionCallbacks = {
   [K in keyof AgentSessionEvents as `on${Capitalize<K>}`]: AgentSessionEvents[K];
 };
+
+/** Every event name, for runtime validation of the `callbacks` shorthand. */
+export const AGENT_SESSION_EVENT_NAMES = [
+  "connect",
+  "disconnect",
+  "statusChange",
+  "modeChange",
+  "userTranscript",
+  "agentResponseDelta",
+  "agentResponse",
+  "message",
+  "toolCallStarted",
+  "toolCallCompleted",
+  "toolCallFailed",
+  "error",
+] as const satisfies readonly (keyof AgentSessionEvents)[];
+
+// Compile-time check that the list above stays exhaustive.
+type MissingEventName = Exclude<keyof AgentSessionEvents, (typeof AGENT_SESSION_EVENT_NAMES)[number]>;
+const _assertEventNamesExhaustive: MissingEventName extends never ? true : never = true;
+void _assertEventNamesExhaustive;

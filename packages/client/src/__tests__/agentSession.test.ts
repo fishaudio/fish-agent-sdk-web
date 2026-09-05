@@ -239,6 +239,38 @@ describe("start", () => {
     transport.transcription({ text: "hi", final: true });
     expect(transcripts).toMatchObject([{ text: "hi" }]);
   });
+
+  it("rejects unknown callback keys before creating a transport", async () => {
+    const createTransport = vi.fn(() => new MockTransport());
+    await expect(
+      startAgentSession(
+        {
+          sessionToken: SESSION_TOKEN,
+          // Bare event names are the most common slip; they must not be a silent no-op.
+          callbacks: { userTranscript: () => {} } as never,
+        },
+        createTransport,
+      ),
+    ).rejects.toThrow(/Unknown callback "userTranscript".*onUserTranscript/);
+    await expect(
+      startAgentSession(
+        { sessionToken: SESSION_TOKEN, callbacks: { onTranscript: () => {} } as never },
+        createTransport,
+      ),
+    ).rejects.toThrow(TypeError);
+    await expect(
+      startAgentSession(
+        { sessionToken: SESSION_TOKEN, callbacks: { onConnect: "nope" } as never },
+        createTransport,
+      ),
+    ).rejects.toThrow(/must be a function/);
+    expect(createTransport).not.toHaveBeenCalled();
+  });
+
+  it("ignores callbacks set to undefined", async () => {
+    const { session } = await start({ callbacks: { onConnect: undefined } });
+    expect(session.status).toBe("connected");
+  });
 });
 
 describe("getRoom", () => {
