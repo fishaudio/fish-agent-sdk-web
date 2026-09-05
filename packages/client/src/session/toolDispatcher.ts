@@ -8,6 +8,16 @@ export type ClientToolHandler = (
 
 export const DEFAULT_CLIENT_TOOL_TIMEOUT_MS = 15_000;
 
+/**
+ * Upper bound on the serialized `client_tool.result` message. The realtime
+ * data channel rejects packets above 64 000 bytes; this leaves headroom for
+ * the packet envelope. Larger results are replaced by an error result so the
+ * agent hears back instead of waiting out its server-side timeout.
+ */
+export const MAX_CLIENT_TOOL_RESULT_BYTES = 60_000;
+
+const textEncoder = new TextEncoder();
+
 type ClientToolCall = Extract<AgentSessionMessage, { type: "client_tool.call" }>;
 
 export class ClientToolDispatcher {
@@ -66,11 +76,61 @@ export class ClientToolDispatcher {
     callId: string,
     body: { result?: unknown; isError?: boolean },
   ): Promise<void> {
+    const message: ClientSessionMessage = { type: "client_tool.result", callId, ...body };
+    const rejected = this.undeliverable(message);
+    if (rejected !== undefined) {
+      this.onError(new FishAgentError("tool_failed", rejected));
+      await this.deliver({ type: "client_tool.result", callId, isError: true, result: rejected });
+      return;
+    }
     try {
-      await this.send({ type: "client_tool.result", callId, ...body });
+      await this.send(message);
     } catch (error) {
       this.onError(
         new FishAgentError("tool_failed", "Failed to deliver a client tool result", {
+          cause: error,
+        }),
+      );
+      if (body.isError) {
+        return;
+      }
+      // The agent is still waiting on this call. Trade the lost result for a
+      // short error result so it can recover in conversation now, rather than
+      // after its server-side tool timeout.
+      await this.deliver({
+        type: "client_tool.result",
+        callId,
+        isError: true,
+        result: `Client tool result could not be delivered: ${String(error)}`,
+      });
+    }
+  }
+
+  /** Why the message cannot go over the wire as-is, or undefined if it can. */
+  private undeliverable(message: ClientSessionMessage): string | undefined {
+    let serialized: string;
+    try {
+      serialized = JSON.stringify(message);
+    } catch (error) {
+      return `Client tool result is not JSON-serializable: ${String(error)}`;
+    }
+    const bytes = textEncoder.encode(serialized).byteLength;
+    if (bytes > MAX_CLIENT_TOOL_RESULT_BYTES) {
+      return (
+        `Client tool result is too large to send (${bytes} bytes serialized; ` +
+        `limit ${MAX_CLIENT_TOOL_RESULT_BYTES}). Return a summary or a reference instead.`
+      );
+    }
+    return undefined;
+  }
+
+  /** Last-resort send of an error result; a failure here is reported, not retried. */
+  private async deliver(message: ClientSessionMessage): Promise<void> {
+    try {
+      await this.send(message);
+    } catch (error) {
+      this.onError(
+        new FishAgentError("tool_failed", "Failed to deliver a client tool error result", {
           cause: error,
         }),
       );
