@@ -49,7 +49,7 @@
   "scripts": {
     "build": "tsup",
     "prepack": "node ../../scripts/assert-pnpm.mjs",
-    "prepublishOnly": "pnpm build",
+    "prepublishOnly": "node ../../scripts/assert-built.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
