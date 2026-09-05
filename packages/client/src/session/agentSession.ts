@@ -8,13 +8,14 @@ import type {
 import { assertOutputSelectionSupported, AudioOutput } from "../audio/output.js";
 import { AudioStreamAnalyser } from "../audio/analysis.js";
 import { FishAgentError } from "../errors.js";
-import type {
-  AgentMode,
-  AgentSessionCallbacks,
-  AgentSessionEvents,
-  EndReason,
-  SessionStatus,
-  TranscriptSegment,
+import {
+  AGENT_SESSION_EVENT_NAMES,
+  type AgentMode,
+  type AgentSessionCallbacks,
+  type AgentSessionEvents,
+  type EndReason,
+  type SessionStatus,
+  type TranscriptSegment,
 } from "../events.js";
 import { resolveSessionToken, type SessionRequestOptions } from "../sessionToken.js";
 import type {
@@ -60,6 +61,39 @@ export interface AgentSessionOptions extends SessionRequestOptions {
 /** How long after connect the agent participant gets to show up before the
  * session gives up — normal joins land within a couple of seconds. */
 const AGENT_JOIN_TIMEOUT_MS = 15_000;
+
+const EVENT_NAMES = new Set<string>(AGENT_SESSION_EVENT_NAMES);
+
+/**
+ * Maps the `callbacks` shorthand (`onUserTranscript`) to event names
+ * (`userTranscript`). Unknown keys throw: silently subscribing to a
+ * non-existent event would hide typos and the bare event names people
+ * reach for first (`userTranscript` instead of `onUserTranscript`).
+ */
+function resolveCallbackSubscriptions(
+  callbacks: Partial<AgentSessionCallbacks> | undefined,
+): Array<[keyof AgentSessionEvents, unknown]> {
+  const subscriptions: Array<[keyof AgentSessionEvents, unknown]> = [];
+  for (const [key, callback] of Object.entries(callbacks ?? {})) {
+    if (callback === undefined) {
+      continue;
+    }
+    const event = /^on[A-Z]/.test(key) ? key.charAt(2).toLowerCase() + key.slice(3) : undefined;
+    if (event === undefined || !EVENT_NAMES.has(event)) {
+      const expected = AGENT_SESSION_EVENT_NAMES.map(
+        (name) => `on${name.charAt(0).toUpperCase()}${name.slice(1)}`,
+      ).join(", ");
+      throw new TypeError(
+        `Unknown callback "${key}". Callback keys are event names prefixed with "on": ${expected}.`,
+      );
+    }
+    if (typeof callback !== "function") {
+      throw new TypeError(`Callback "${key}" must be a function, got ${typeof callback}.`);
+    }
+    subscriptions.push([event as keyof AgentSessionEvents, callback]);
+  }
+  return subscriptions;
+}
 
 /** Assigned in AgentSession's static block; bridges startAgentSession to the
  * class-private #startWith so no transport types sit on the public class. */
@@ -310,6 +344,10 @@ export class AgentSession extends TypedEmitter<AgentSessionEvents> {
       // server session is even created.
       assertOutputSelectionSupported();
     }
+    // Validated before anything with side effects: a typo in a callback name
+    // is a programming error and must not cost a microphone prompt or a
+    // server session to discover.
+    const callbackSubscriptions = resolveCallbackSubscriptions(options.callbacks);
     const transport = createTransport();
     if (options.microphone !== false) {
       // Inside the user gesture that called start(), before the token
@@ -334,9 +372,7 @@ export class AgentSession extends TypedEmitter<AgentSessionEvents> {
       throw error;
     }
 
-    for (const [key, callback] of Object.entries(options.callbacks ?? {})) {
-      const event = (key.charAt(2).toLowerCase() +
-        key.slice(3)) as keyof AgentSessionEvents;
+    for (const [event, callback] of callbackSubscriptions) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       session.on(event, callback as any);
     }

@@ -1,6 +1,6 @@
 # Events
 
-Subscribe with `session.on(event, listener)` / `off` / `once`, or via `callbacks` at start (each `onXxx` key subscribes the `xxx` event).
+Subscribe with `session.on(event, listener)` / `off` / `once`, or via `callbacks` at start (each `onXxx` key subscribes the `xxx` event, so `onUserTranscript` for `userTranscript`; an unknown key throws a `TypeError` from `start()`).
 
 | Event | Payload | Fired when |
 |---|---|---|

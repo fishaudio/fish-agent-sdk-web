@@ -44,7 +44,7 @@ Starting a session requests microphone access; call `start()` from a user gestur
 | `audio.inputDeviceId` | `string` | Microphone device to capture from. |
 | `audio.outputDeviceId` | `string` | Playback device (`setSinkId`). `start()` rejects with `device_change_failed` where the browser doesn't support output selection (common on mobile; checked before a server session is created) or the device can't be used (checked before connecting). |
 | `wakeLock` | `boolean` | Hold a screen wake lock while the session is live, so long calls survive the phone trying to sleep. Default `true`; denial (battery saver, unsupported browser) is silent. |
-| `callbacks` | `Partial<AgentSessionCallbacks>` | Sugar for `.on(...)` — each `onXxx` key subscribes the `xxx` event. |
+| `callbacks` | `Partial<AgentSessionCallbacks>` | Sugar for `.on(...)` — each `onXxx` key subscribes the `xxx` event (`onUserTranscript` → `userTranscript`). A key that is not a known event name throws a `TypeError` from `start()`. |
 
 Returns a connected `AgentSession`. Rejects with a [`FishAgentError`](errors.md) if session creation, permissions, or the connection fail.
 
