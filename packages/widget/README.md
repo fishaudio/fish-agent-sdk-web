@@ -1,8 +1,8 @@
 # @fishaudio/agent-widget
 
-Embeddable `<fish-agent>` voice-agent widget for [Fish Audio](https://fish.audio) agents: a floating launcher that expands into a voice-first chat card — live transcript, text input, client-tool chips, consent gate. A custom element rendering into shadow DOM, built on [`@fishaudio/agent-client`](https://github.com/fishaudio/fish-agent-sdk-web/tree/main/packages/client).
+Embeddable `<fish-agent>` voice-agent widget for [Fish Audio](https://fish.audio) agents: a floating launcher that expands into a voice-first chat card — live transcript, text input, client-tool chips, consent gate. A custom element rendering into shadow DOM, built on [`@fishaudio/agent-client`](https://www.npmjs.com/package/@fishaudio/agent-client).
 
-Just want a script tag? [`@fishaudio/agent-widget-embed`](https://github.com/fishaudio/fish-agent-sdk-web/tree/main/packages/widget-embed) is the same widget pre-bundled as one CDN file that registers `<fish-agent>` on load — no install, no build step:
+Just want a script tag? [`@fishaudio/agent-widget-embed`](https://www.npmjs.com/package/@fishaudio/agent-widget-embed) is the same widget pre-bundled as one CDN file that registers `<fish-agent>` on load — no install, no build step:
 
 ```html
 <fish-agent agent-id="your-agent-id"></fish-agent>
@@ -28,7 +28,7 @@ registerWidget(); // defines <fish-agent>
 <fish-agent agent-id="your-agent-id"></fish-agent>
 ```
 
-Exactly one of `agent-id` (public agent, Origin-allowlisted) or `token-endpoint` (private agent — a URL on your backend that returns a session-token JSON) is required. Everything else is attributes: `agent-name`, `greeting`, `proactive-message`, `proactive-delay`, `position`, the `transcript` / `text-input` / `mic-muting` / `consent` switches, `language`, `user-id`, `dynamic-variables` (JSON) and `text-contents` (JSON overriding any UI string) — see the [attribute reference](https://github.com/fishaudio/fish-agent-sdk-web/blob/main/docs/widget.md#attributes). Theming is CSS custom properties (`--fish-accent`, …) on the element.
+Exactly one of `agent-id` (public agent, Origin-allowlisted) or `token-endpoint` (private agent — a URL on your backend that returns a session-token JSON) is required. Everything else is attributes: `agent-name`, `greeting`, `proactive-message`, `proactive-delay`, `position`, the `transcript` / `text-input` / `mic-muting` / `consent` switches, `language`, `user-id`, `dynamic-variables` (JSON) and `text-contents` (JSON overriding any UI string) — see the [attribute reference](https://docs.fish.audio/agents/deploy/widget#attributes). Theming is CSS custom properties (`--fish-accent`, …) on the element.
 
 Page API: the element emits bubbling, composed `CustomEvent`s — `fish-agent:call` (`{ options }`, mutable; inject `clientTools` here), `fish-agent:connect` (`{ sessionId }`), `fish-agent:disconnect` (`{ reason }`), `fish-agent:error` (`{ code, message }`). Dispatch `fish-agent:expand` on the element or `document` to open the panel programmatically.
 
@@ -48,9 +48,9 @@ import { FishAgentWidget } from "@fishaudio/agent-widget/react";
 
 ## Documentation
 
-- [Widget](https://github.com/fishaudio/fish-agent-sdk-web/blob/main/docs/widget.md) — behavior, attributes, theming, page API, private agents.
-- [Authentication](https://github.com/fishaudio/fish-agent-sdk-web/blob/main/docs/authentication.md) — public agents vs. server-created session tokens.
-- [Client tools](https://github.com/fishaudio/fish-agent-sdk-web/blob/main/docs/client-tools.md) — let the agent call functions in the browser.
+- [Widget](https://docs.fish.audio/agents/deploy/widget) — behavior, attributes, theming, page events, private agents.
+- [Public agents](https://docs.fish.audio/agents/deploy/public-agents) and [authenticated sessions](https://docs.fish.audio/agents/deploy/authenticated-sessions) — a public agent id vs. server-created session tokens.
+- [Client tools](https://docs.fish.audio/agents/build/client-tools) — let the agent call functions in the browser.
 
 ## License
 

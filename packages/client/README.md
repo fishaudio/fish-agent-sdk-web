@@ -2,7 +2,7 @@
 
 Framework-agnostic JavaScript/TypeScript SDK for embedding [Fish Audio](https://fish.audio) voice agents into any website or web app: realtime voice over WebRTC, live transcripts, text input, and client tools — behind one small, event-driven API.
 
-Using React? [`@fishaudio/agent-react`](https://github.com/fishaudio/fish-agent-sdk-web/tree/main/packages/react) wraps this SDK in hooks and components.
+Using React? [`@fishaudio/agent-react`](https://www.npmjs.com/package/@fishaudio/agent-react) wraps this SDK in hooks and components.
 
 ## Installation
 
@@ -36,10 +36,10 @@ Starting a session requests microphone access; call `start()` from a user gestur
 
 ## Documentation
 
-- [Quickstart](https://github.com/fishaudio/fish-agent-sdk-web/blob/main/docs/quickstart.md) — first call, with or without a backend.
-- [Authentication](https://github.com/fishaudio/fish-agent-sdk-web/blob/main/docs/authentication.md) — server-created session tokens vs. public agents.
-- [Sessions](https://github.com/fishaudio/fish-agent-sdk-web/blob/main/docs/sessions.md) — `start()` options, the session API, lifecycle and reconnection.
-- [Events](https://github.com/fishaudio/fish-agent-sdk-web/blob/main/docs/events.md) — event reference and live transcripts.
-- [Client tools](https://github.com/fishaudio/fish-agent-sdk-web/blob/main/docs/client-tools.md) — let the agent call functions in the browser.
-- [Customization](https://github.com/fishaudio/fish-agent-sdk-web/blob/main/docs/customization.md) — per-session overrides and dynamic variables.
-- [Errors](https://github.com/fishaudio/fish-agent-sdk-web/blob/main/docs/errors.md) — `FishAgentError` codes.
+- [Quickstart](https://docs.fish.audio/agents/quickstart) — first call, with or without a backend.
+- [Authenticated sessions](https://docs.fish.audio/agents/deploy/authenticated-sessions) and [public agents](https://docs.fish.audio/agents/deploy/public-agents) — server-created session tokens vs. a public agent id.
+- [Web SDK reference](https://docs.fish.audio/agents/deploy/web-sdk) — `start()` options, the session API, lifecycle and reconnection.
+- [Events](https://docs.fish.audio/agents/deploy/web-sdk#events) — event reference and live transcripts.
+- [Client tools](https://docs.fish.audio/agents/build/client-tools) — let the agent call functions in the browser.
+- [Overrides](https://docs.fish.audio/agents/deploy/authenticated-sessions#overrides) and [dynamic variables](https://docs.fish.audio/agents/build/dynamic-variables) — per-session customization.
+- [Errors](https://docs.fish.audio/agents/deploy/web-sdk#errors) — `FishAgentError` codes.

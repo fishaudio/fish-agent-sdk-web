@@ -2,7 +2,7 @@
 
 Embed [Fish Audio](https://fish.audio) voice agents into any website or web app: realtime voice over WebRTC, live transcripts, text chat, and client tools — behind one small, event-driven API.
 
-Developer documentation lives in [`docs/`](docs/README.md).
+Public documentation: [Web SDK](https://docs.fish.audio/agents/deploy/web-sdk), [React SDK](https://docs.fish.audio/agents/deploy/react-sdk), [Widget](https://docs.fish.audio/agents/deploy/widget). The in-repo notes under [`docs/`](docs/README.md) track the source.
 
 | Package | Docs | Description |
 |---|---|---|

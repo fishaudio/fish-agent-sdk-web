@@ -1,6 +1,6 @@
 # @fishaudio/agent-widget-embed
 
-One-script CDN build of the [Fish Audio](https://fish.audio) `<fish-agent>` voice-agent widget. Loading it registers the element — a single minified IIFE with everything bundled in ([`@fishaudio/agent-widget`](https://github.com/fishaudio/fish-agent-sdk-web/tree/main/packages/widget), client SDK, preact, livekit-client). No install, no build step.
+One-script CDN build of the [Fish Audio](https://fish.audio) `<fish-agent>` voice-agent widget. Loading it registers the element — a single minified IIFE with everything bundled in ([`@fishaudio/agent-widget`](https://www.npmjs.com/package/@fishaudio/agent-widget), client SDK, preact, livekit-client). No install, no build step.
 
 ## Usage
 
@@ -20,9 +20,9 @@ Then place the element anywhere on the page:
 <fish-agent agent-id="your-agent-id"></fish-agent>
 ```
 
-The agent must have public access enabled with your page's origin on its allowlist. For private agents, use `token-endpoint="/api/voice-session"` instead of `agent-id` — see the [widget guide](https://github.com/fishaudio/fish-agent-sdk-web/blob/main/docs/widget.md) for all attributes, theming, and page events.
+The agent must have public access enabled with your page's origin on its allowlist. For private agents, use `token-endpoint="/api/voice-session"` instead of `agent-id` — see the [widget guide](https://docs.fish.audio/agents/deploy/widget) for all attributes, theming, and page events.
 
-Bundling the widget yourself? Install [`@fishaudio/agent-widget`](https://github.com/fishaudio/fish-agent-sdk-web/tree/main/packages/widget) instead and call `registerWidget()` once; React apps get `<FishAgentWidget>` from `@fishaudio/agent-widget/react`. This package is that widget pre-bundled for `<script src>` installs.
+Bundling the widget yourself? Install [`@fishaudio/agent-widget`](https://www.npmjs.com/package/@fishaudio/agent-widget) instead and call `registerWidget()` once; React apps get `<FishAgentWidget>` from `@fishaudio/agent-widget/react`. This package is that widget pre-bundled for `<script src>` installs.
 
 ## License
 

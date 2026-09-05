@@ -16,7 +16,7 @@
     "url": "git+https://github.com/fishaudio/fish-agent-sdk-web.git",
     "directory": "packages/protocol"
   },
-  "homepage": "https://github.com/fishaudio/fish-agent-sdk-web/tree/main/packages/protocol#readme",
+  "homepage": "https://docs.fish.audio/agents/deploy/protocol",
   "bugs": "https://github.com/fishaudio/fish-agent-sdk-web/issues",
   "sideEffects": false,
   "main": "./dist/index.cjs",

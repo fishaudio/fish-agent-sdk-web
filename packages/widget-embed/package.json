@@ -16,7 +16,7 @@
     "url": "git+https://github.com/fishaudio/fish-agent-sdk-web.git",
     "directory": "packages/widget-embed"
   },
-  "homepage": "https://github.com/fishaudio/fish-agent-sdk-web/tree/main/packages/widget-embed#readme",
+  "homepage": "https://docs.fish.audio/agents/deploy/widget",
   "bugs": "https://github.com/fishaudio/fish-agent-sdk-web/issues",
   "sideEffects": true,
   "main": "./dist/index.js",
