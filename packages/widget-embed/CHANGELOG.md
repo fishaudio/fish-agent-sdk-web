@@ -1,5 +1,13 @@
 # @fishaudio/agent-widget-embed
 
+## 0.2.1
+
+### Patch Changes
+
+- b05db7d: Republish with resolved internal dependency ranges. The 0.2.0 tarballs declared their `@fishaudio/*` dependencies with the `workspace:^` protocol, which npm cannot install; packing and publishing now go through pnpm only, and a release-time check verifies the packed manifests.
+- Updated dependencies [b05db7d]
+  - @fishaudio/agent-widget@0.2.1
+
 ## 0.2.0
 
 ### Patch Changes

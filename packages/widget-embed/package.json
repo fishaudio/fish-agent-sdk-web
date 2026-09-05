@@ -1,6 +1,6 @@
 {
   "name": "@fishaudio/agent-widget-embed",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "One-script CDN build of the Fish Audio <fish-agent> widget: loading it registers the element.",
   "keywords": [
     "fish-audio",

@@ -1,5 +1,15 @@
 # @fishaudio/agent-client
 
+## 0.2.1
+
+### Patch Changes
+
+- 98ceef5: `AgentSession.start()` now throws a `TypeError` for unknown `callbacks` keys (for example a bare event name such as `userTranscript` instead of `onUserTranscript`) and for values that are not functions. Previously such entries were silently subscribed to a non-existent event and never fired. The check runs before the microphone prompt or any server request.
+- e258acc: Client tool results that cannot be delivered no longer leave the agent waiting on its server-side tool timeout. A result larger than about 60 KB serialized (`MAX_CLIENT_TOOL_RESULT_BYTES`), a non-JSON-serializable value, or a transport error on send is replaced by an error result that tells the agent what happened, alongside the existing `tool_failed` error event.
+- b05db7d: Republish with resolved internal dependency ranges. The 0.2.0 tarballs declared their `@fishaudio/*` dependencies with the `workspace:^` protocol, which npm cannot install; packing and publishing now go through pnpm only, and a release-time check verifies the packed manifests.
+- Updated dependencies [b05db7d]
+  - @fishaudio/agent-protocol@0.2.1
+
 ## 0.2.0
 
 ### Minor Changes
