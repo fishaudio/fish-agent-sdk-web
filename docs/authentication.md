@@ -17,7 +17,7 @@ curl https://api.fish.audio/v1/agent/sessions \
 # 201 → { "session_id", "transport", "livekit_url", "token", "expires_at", ... }
 ```
 
-`end_user_id` is optional, for attribution in session records. The create body also accepts `language`, `overrides`, `dynamic_variables` (see [Customization](customization.md)), `timezone` / `world_context` (the agent's sense of local time), free-form `metadata`, and `tool_events` — set `tool_events: false` to keep the agent's [tool-call lifecycle](events.md#tool-call-lifecycle) (arguments and results) from streaming to the browser; it defaults to on.
+`end_user_id` is optional. It is stored on the session record for attribution. The create body also accepts `language`, `overrides`, and `dynamic_variables` (see [Customization](customization.md)), `timezone` and `world_context` for the agent's sense of local time, free-form `metadata`, and `tool_events`. `tool_events` defaults to on. Set it to `false` to keep [tool-call arguments and results](events.md#tool-call-lifecycle) from streaming to the browser.
 
 ```js
 // server (Node / Express)
@@ -38,7 +38,7 @@ app.post("/api/voice-session", async (req, res) => {
 ```
 
 ```python
-# server (Python — any framework)
+# server (Python, any framework)
 import os
 import requests
 
@@ -56,14 +56,14 @@ def create_voice_session(end_user_id: str) -> dict:
 ```
 
 ```js
-// browser — request the token when the user starts the call, then start with it
+// browser: request the token when the user starts the call, then start with it
 import { AgentSession } from "@fishaudio/agent-client";
 
 const sessionToken = await fetch("/api/voice-session", { method: "POST" }).then((r) => r.json());
 const session = await AgentSession.start({ sessionToken });
 ```
 
-The session token is a discriminated union on `transport`. Forward it verbatim — the SDK validates it and connects. It is short-lived, so fetch it right before `start()` (in the same click handler), not at page load. To force-end a session from your backend, call `POST /v1/agent/sessions/{session_id}/end` with your API key.
+The session token is a discriminated union on `transport`. Forward it to the browser verbatim. The SDK validates it and connects. The token is short-lived, so fetch it in the same click handler that calls `start()`, not at page load. To force-end a session from your backend, call `POST /v1/agent/sessions/{session_id}/end` with your API key.
 
 ## 2. Public agent (keyless)
 

@@ -1,10 +1,10 @@
 # Audio visualization
 
-Both APIs resolve their session like every other consumer: explicit argument/prop, or the surrounding [provider](provider.md).
+Both APIs resolve their session like every other consumer. Pass it as an explicit argument or prop, or omit it to use the surrounding [provider](provider.md).
 
 ## `useAudioLevels(session?, fps?)`
 
-Polled `{ input, output }` RMS levels in `[0, 1]` — `input` is the microphone, `output` is the agent's voice. Defaults to 20 samples per second; raise `fps` for snappier meters, lower it to save work. Both are `0` before the session connects.
+Polled `{ input, output }` RMS levels in `[0, 1]`. `input` is the microphone and `output` is the agent's voice. Defaults to 20 samples per second. Raise `fps` for snappier meters or lower it to save work. Both are `0` before the session connects.
 
 ```tsx
 function MicMeter() {
@@ -36,6 +36,6 @@ Canvas frequency bars for the agent's voice, animated with `requestAnimationFram
 | `session` | `AgentSession \| null` | provider's | Explicit session, or omit to use the provider. |
 | `bars` | `number` | `24` | Number of frequency bars. |
 | `width` / `height` | `number` | `240` / `64` | Canvas size in pixels. |
-| `className` | `string` | — | Passed to the `<canvas>`; set `color` through it to theme the bars. |
+| `className` | `string` | none | Passed to the `<canvas>`; set `color` through it to theme the bars. |
 
-For a fully custom visualizer, read the session's analyser data directly: `getOutputFrequencyData()` / `getInputFrequencyData()` return `Uint8Array` FFT bins — see the [session API](../sessions.md#session-api).
+For a fully custom visualizer, read the session's analyser data directly. `getOutputFrequencyData()` and `getInputFrequencyData()` return `Uint8Array` FFT bins. See the [session API](../sessions.md#session-api).

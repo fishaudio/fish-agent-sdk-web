@@ -1,6 +1,6 @@
 # React overview
 
-`@fishaudio/agent-react` provides React hooks and components for Fish Audio voice agents, built on [`@fishaudio/agent-client`](../sessions.md). Authentication, events, client tools, and error semantics are the client SDK's — everything documented there applies here.
+`@fishaudio/agent-react` provides React hooks and components for Fish Audio voice agents, built on [`@fishaudio/agent-client`](../sessions.md). Authentication, events, client tools, and error semantics come from the client SDK. Everything documented there applies here.
 
 ## Installation
 
@@ -50,10 +50,10 @@ The hook ends the session automatically when the component unmounts. Start calls
 
 ## Package contents
 
-- [`useConversation`](useConversation.md) — owns one session's lifecycle; the primary entry point.
-- [Provider](provider.md) — `<AgentSessionProvider>` and context hooks, to share one conversation across a tree.
-- [`useAgentMessages`](useAgentMessages.md) — streaming chat log for building a chat UI.
-- [Audio visualization](audio-visualization.md) — `useAudioLevels` for meters, `<AgentAudioVisualizer />` for frequency bars.
+- [`useConversation`](useConversation.md) owns one session's lifecycle. It is the primary entry point.
+- [Provider](provider.md) covers `<AgentSessionProvider>` and the context hooks that share one conversation across a tree.
+- [`useAgentMessages`](useAgentMessages.md) is a streaming chat log for building a chat UI.
+- [Audio visualization](audio-visualization.md) covers `useAudioLevels` for meters and `<AgentAudioVisualizer />` for frequency bars.
 
 The client package's key exports (`AgentSession`, `FishAgentError`, and their types) are re-exported, so app code can import everything from `@fishaudio/agent-react`.
 

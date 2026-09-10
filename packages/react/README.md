@@ -39,6 +39,6 @@ The hook ends the session automatically when the component unmounts. Start calls
 
 ## Documentation
 
-- [React SDK](https://docs.fish.audio/agents/deploy/react-sdk) — quickstart, Next.js, `useConversation`, the provider, `useAgentMessages`, and audio visualization.
+- [React SDK](https://docs.fish.audio/agents/deploy/react-sdk) covers the quickstart, Next.js, `useConversation`, the provider, `useAgentMessages`, and audio visualization.
 
-Authentication, events, client tools, and errors are documented with the [Web SDK](https://docs.fish.audio/agents/deploy/web-sdk) — everything there applies here.
+Authentication, events, client tools, and errors are documented with the [Web SDK](https://docs.fish.audio/agents/deploy/web-sdk). Everything there applies here.

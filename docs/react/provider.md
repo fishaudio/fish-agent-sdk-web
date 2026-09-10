@@ -33,9 +33,9 @@ function Transcript() {
 
 ## API
 
-- **`<AgentSessionProvider options={...}>`** — hosts one `useConversation(options)`; `options` are the hook's `defaults`.
-- **`useAgentSessionContext()`** — the same `UseConversationReturn` from the nearest provider. Throws outside a provider.
-- **`useOptionalAgentSessionContext()`** — nullable variant, for components that also work standalone.
+- `<AgentSessionProvider options={...}>` hosts one `useConversation(options)`. `options` are the hook's `defaults`.
+- `useAgentSessionContext()` returns the same `UseConversationReturn` from the nearest provider. It throws outside a provider.
+- `useOptionalAgentSessionContext()` is the nullable variant, for components that also work standalone.
 
 ## Session resolution
 

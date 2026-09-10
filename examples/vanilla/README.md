@@ -18,4 +18,4 @@ Then open http://127.0.0.1:5173, paste your agent id, and click **Start voice** 
 
 Create and publish an agent in the [Fish Audio dashboard](https://fish.audio), then enable public access on it with your page's origin (`http://127.0.0.1:5173`) on its Origin allowlist. The agent id is on the agent's page in the dashboard.
 
-This example uses `agentId` mode, which needs no backend. For private agents your server creates a session token instead — see [Authentication](../../docs/authentication.md).
+This example uses `agentId` mode, which needs no backend. For private agents your server creates a session token instead. See [Authentication](../../docs/authentication.md).

@@ -1,16 +1,16 @@
 # Fish Agent Web SDK
 
-Embed [Fish Audio](https://fish.audio) voice agents into any website or web app: realtime voice over WebRTC, live transcripts, text chat, and client tools — behind one small, event-driven API.
+Embed [Fish Audio](https://fish.audio) voice agents into any website or web app: realtime voice over WebRTC, live transcripts, text chat, and client tools. The API is small and event-driven.
 
 Public documentation: [Web SDK](https://docs.fish.audio/agents/deploy/web-sdk), [React SDK](https://docs.fish.audio/agents/deploy/react-sdk), [Widget](https://docs.fish.audio/agents/deploy/widget). The in-repo notes under [`docs/`](docs/README.md) track the source.
 
 | Package | Docs | Description |
 |---|---|---|
-| `@fishaudio/agent-client` | [docs](docs/README.md#fishaudioagent-client) | Framework-agnostic JS SDK — sessions, realtime audio, transcripts, client tools. |
+| `@fishaudio/agent-client` | [docs](docs/README.md#fishaudioagent-client) | Framework-agnostic JS SDK. Sessions, realtime audio, transcripts, client tools. |
 | `@fishaudio/agent-react` | [docs](docs/react/README.md) | React hooks (`useConversation`), provider, chat-log and visualizer components. |
 | `@fishaudio/agent-widget` | [docs](docs/widget.md) | `<fish-agent>` custom element (plus a `<FishAgentWidget>` React component): voice-first chat card with transcript, tool chips, consent, theming. |
-| `@fishaudio/agent-widget-embed` | [docs](docs/widget.md) | The widget as one CDN script — loading it registers `<fish-agent>`. |
-| `@fishaudio/agent-protocol` | [README](packages/protocol/README.md) | Semi-internal wire contract — realtime messages and session-creation shapes. Dependency-free; apps consume it via `agent-client`. |
+| `@fishaudio/agent-widget-embed` | [docs](docs/widget.md) | The widget as one CDN script. Loading it registers `<fish-agent>`. |
+| `@fishaudio/agent-protocol` | [README](packages/protocol/README.md) | Semi-internal wire contract for realtime messages and session creation. Dependency-free. Apps consume it via `agent-client`. |
 
 ### Widget (no build step)
 
@@ -27,7 +27,7 @@ Two ways to start a call, depending on whether the agent is public.
 
 The session is created on your server (which holds your API key) and joined from the browser.
 
-**1. Server** — create a short-lived session token and return it to the browser.
+**1. Server:** create a short-lived session token and return it to the browser.
 
 ```js
 // e.g. POST /api/voice-session
@@ -44,7 +44,7 @@ app.post("/api/voice-session", async (req, res) => {
 });
 ```
 
-**2. Browser** — fetch the token from your server (do it when the call starts, since it's short-lived), then join. `AgentSession.start` requests microphone access, streams the mic to the agent, and plays the agent's voice back through the speakers — so call it from a user gesture (a click), which browsers require to grant the mic and start audio playback.
+**2. Browser:** fetch the token from your server when the call starts, then join. The token is short-lived, so don't fetch it at page load. `AgentSession.start` requests microphone access, streams the mic to the agent, and plays the agent's voice through the speakers. Browsers only allow that from a user gesture, so call it from a click handler.
 
 ```js
 import { AgentSession } from "@fishaudio/agent-client";
@@ -62,7 +62,7 @@ const session = await AgentSession.start({
 
 ### Public agents
 
-To deploy an agent that needs no authentication, start the session directly in the browser with its `agentId` — no server involved. Enable public access on the agent in the dashboard (with an Origin allowlist). `start` works as above — it uses the mic and speaker, so call it from a click.
+A public agent needs no server. Enable public access on the agent in the dashboard and add your page origin to its allowlist. Then start the session in the browser with the `agentId`. `start` still uses the mic and speaker, so call it from a click handler.
 
 ```js
 import { AgentSession } from "@fishaudio/agent-client";
