@@ -24,7 +24,22 @@ export type SessionToken = LiveKitSessionToken;
  * default reply language. Omit to use the agent's configured speaking
  * language.
  */
-export type SessionLanguage = "en" | "ja" | "zh" | "ko" | "es" | "fr" | "de" | "pt" | "it" | "nl";
+export type SessionLanguage =
+  | "en"
+  | "ja"
+  | "zh"
+  | "ko"
+  | "es"
+  | "fr"
+  | "de"
+  | "pt"
+  | "it"
+  | "nl"
+  | "ar"
+  | "hi"
+  | "id"
+  | "tr";
+
 
 /**
  * Per-session config overrides; each field must be enabled on the agent.
