@@ -5,7 +5,20 @@ export type SessionStatus = "connecting" | "connected" | "reconnecting" | "ended
 
 export type AgentMode = "listening" | "thinking" | "speaking";
 
-export type EndReason = "user_hangup" | "agent_hangup" | "connection_lost";
+/**
+ * Why the session ended. `connection_lost` is client-derived (reconnection
+ * failed, the agent never joined, or the call dropped before the runtime could
+ * say why); every other value is the runtime's own reason, delivered over the
+ * protocol's `session.ended` announcement — or, against an older runtime that
+ * never sends one, inferred from transport signals (where every server-side
+ * end surfaces as `agent_hangup`).
+ */
+export type EndReason =
+  | "user_hangup"
+  | "agent_hangup"
+  | "conversation_timeout"
+  | "escalated"
+  | "connection_lost";
 
 export interface UserTranscriptEvent {
   /** Groups updates of one utterance; interim updates replace, they never append. */

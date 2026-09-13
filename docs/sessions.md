@@ -104,9 +104,13 @@ A session can be ended by anyone; the `disconnect` event carries who/why as an `
 
 | `EndReason` | Cause |
 |---|---|
-| `user_hangup` | Your code called `session.end()` (or the user left the page). |
-| `agent_hangup` | The server ended the call: the agent hung up, the session hit its duration limit, or your backend force-ended it. |
-| `connection_lost` | Reconnection failed, or the agent never joined (15 s). |
+| `user_hangup` | Your code called `session.end()` (or the user left the page), or your backend ended the session through the API. |
+| `agent_hangup` | The agent ended the call: a hang-up decision, or the workflow reaching an end node. |
+| `conversation_timeout` | The session hit its duration limit (`max_duration_seconds`). |
+| `escalated` | The call was handed off to a human agent. |
+| `connection_lost` | Reconnection failed, the agent never joined (15 s), or the call dropped before the server could say why. |
+
+Reasons other than `connection_lost` are announced by the server over the protocol's `session.ended` event just before it tears the call down; the values match the session record your backend reads (`endReason`), so both sides reconcile exactly. Against an older runtime that never announces, every server-side end surfaces as `agent_hangup` (inferred from the room closing).
 
 `session.end()` is idempotent, including concurrent calls while teardown is still in flight, and `endReason` stays readable on the ended session.
 
