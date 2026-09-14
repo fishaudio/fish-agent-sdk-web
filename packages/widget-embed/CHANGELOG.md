@@ -1,5 +1,11 @@
 # @fishaudio/agent-widget-embed
 
+## 0.3.0
+
+### Patch Changes
+
+- @fishaudio/agent-widget@0.3.0
+
 ## 0.2.1
 
 ### Patch Changes
