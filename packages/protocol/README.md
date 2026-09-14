@@ -12,7 +12,7 @@ One topic constant per channel, plus the payload type that travels on it:
 
 | Topic | Direction | Payload |
 |---|---|---|
-| `AGENT_EVENT_TOPIC` | agent → client | `AgentSessionMessage`. Session control such as `client_tool.call` and `error`. One complete JSON object per message. |
+| `AGENT_EVENT_TOPIC` | agent → client | `AgentSessionMessage`. Session control such as `client_tool.call`, `session.ended`, and `error`. One complete JSON object per message. |
 | `CLIENT_EVENT_TOPIC` | client → agent | `ClientSessionMessage`. Text injection, tool results, graceful hangup. |
 
 Transcripts (streaming assistant reply and user ASR, interim and final) are not part of this contract: they travel on LiveKit's built-in `lk.transcription` text streams, keyed by the `lk.segment_id` attribute, with `lk.transcription_final` marking finals and the stream's sender identity distinguishing user from agent.

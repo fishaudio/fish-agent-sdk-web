@@ -53,6 +53,19 @@ export type ToolCallEventMessage =
       error: string;
     };
 
+/**
+ * Why the runtime ended the session. Values mirror the `endReason` on the
+ * session record your backend reads, so the client-observed reason and the
+ * server-recorded one reconcile exactly. The set is additive: a consumer
+ * receiving a reason it does not recognize must ignore the whole message and
+ * fall back to transport-level disconnect signals.
+ */
+export type SessionEndedReason =
+  | "user_hangup"
+  | "agent_hangup"
+  | "conversation_timeout"
+  | "escalated";
+
 /** `agent-event` topic: agent→client, one complete JSON object per message. */
 export type AgentSessionMessage =
   | {
@@ -65,6 +78,11 @@ export type AgentSessionMessage =
       expectsResponse: boolean;
     }
   | ToolCallEventMessage
+  // Sent once, before the agent leaves or the room is deleted, on every close
+  // path that still has a live runtime to announce it (agent hangup, workflow
+  // end, duration cap, server-forced end). Ends nobody can announce — a
+  // runtime crash, network loss — surface only as a transport disconnect.
+  | { type: "session.ended"; reason: SessionEndedReason }
   // Category only — raw provider/runtime error text is never sent to clients.
   | { type: "error"; code: "provider_error" | "internal_error" };
 

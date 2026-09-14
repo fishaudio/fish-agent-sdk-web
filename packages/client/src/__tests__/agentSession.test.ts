@@ -998,6 +998,51 @@ describe("lifecycle", () => {
     expect(dropped.session.endReason).toBe("connection_lost");
   });
 
+  it("prefers the announced session.ended reason over disconnect inference", async () => {
+    const { session, transport } = await start();
+    transport.agent({ type: "session.ended", reason: "conversation_timeout" });
+    // The announcement alone doesn't end the session — teardown follows.
+    expect(session.status).toBe("connected");
+    transport.state("disconnected", "ROOM_DELETED");
+    expect(session.endReason).toBe("conversation_timeout");
+  });
+
+  it("uses the announced reason even when the disconnect looks like a drop", async () => {
+    const { session, transport } = await start();
+    transport.agent({ type: "session.ended", reason: "agent_hangup" });
+    transport.state("disconnected", "SIGNAL_CLOSE");
+    expect(session.endReason).toBe("agent_hangup");
+  });
+
+  it("ignores a session.ended carrying an unrecognized reason (forward compat)", async () => {
+    const { session, transport } = await start();
+    transport.agent({ type: "session.ended", reason: "sun_exploded" } as never);
+    transport.state("disconnected", "ROOM_DELETED");
+    expect(session.endReason).toBe("agent_hangup");
+  });
+
+  it("keeps user_hangup when the client ended locally despite an announcement", async () => {
+    const { session, transport } = await start();
+    transport.agent({ type: "session.ended", reason: "agent_hangup" });
+    await session.end();
+    expect(session.endReason).toBe("user_hangup");
+  });
+
+  it("ends with the announced reason if the room teardown never lands", async () => {
+    vi.useFakeTimers();
+    try {
+      const { session, transport } = await start();
+      transport.agent({ type: "session.ended", reason: "conversation_timeout" });
+      expect(session.status).toBe("connected");
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(session.status).toBe("ended");
+      expect(session.endReason).toBe("conversation_timeout");
+      expect(transport.disconnectCalls).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("tracks reconnection in status", async () => {
     const { session, transport } = await start();
     transport.state("reconnecting");

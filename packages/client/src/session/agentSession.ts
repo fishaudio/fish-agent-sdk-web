@@ -62,6 +62,20 @@ export interface AgentSessionOptions extends SessionRequestOptions {
  * session gives up — normal joins land within a couple of seconds. */
 const AGENT_JOIN_TIMEOUT_MS = 15_000;
 
+/** The runtime tears the room down right after announcing `session.ended`;
+ * if that teardown signal never lands, end locally with the announced reason. */
+const SESSION_ENDED_GRACE_MS = 10_000;
+
+/** `session.ended` reasons this SDK understands; the reason set is additive,
+ * so an announcement carrying an unrecognized value is ignored by contract
+ * and the transport disconnect signals decide instead. */
+const ANNOUNCED_END_REASONS: ReadonlySet<string> = new Set<EndReason>([
+  "user_hangup",
+  "agent_hangup",
+  "conversation_timeout",
+  "escalated",
+]);
+
 const EVENT_NAMES = new Set<string>(AGENT_SESSION_EVENT_NAMES);
 
 /**
@@ -106,6 +120,10 @@ export class AgentSession extends TypedEmitter<AgentSessionEvents> {
   #status: SessionStatus = "connecting";
   #mode: AgentMode = "listening";
   #endReason?: EndReason;
+  /** Reason announced by the runtime over `session.ended`, held until the
+   * transport disconnect (or the grace timer) finalizes the session with it. */
+  #announcedEndReason?: EndReason;
+  #endedGraceTimer?: ReturnType<typeof setTimeout>;
   #sessionId: string;
   #micMuted = false;
   #endedByClient = false;
@@ -548,14 +566,18 @@ export class AgentSession extends TypedEmitter<AgentSessionEvents> {
       }
       return;
     }
-    // AGENT_LEFT = the agent participant hung up (worker ends without closing
-    // the room). Room deletion covers server-forced ends and the duration
-    // cap — the protocol has no session.ended message to tell these apart.
+    // A `session.ended` announcement from the runtime is authoritative. The
+    // transport signals below are the fallback for ends nobody could announce
+    // (older runtimes, a runtime crash, network loss): AGENT_LEFT = the agent
+    // participant hung up (worker ends without closing the room); room
+    // deletion covers server-forced ends and the duration cap — without the
+    // announcement these are indistinguishable and all read as agent_hangup.
     const ended = this.#endedByClient
       ? "user_hangup"
-      : reason === "AGENT_LEFT" || reason === "ROOM_DELETED" || reason === "ROOM_CLOSED"
-        ? "agent_hangup"
-        : "connection_lost";
+      : (this.#announcedEndReason ??
+        (reason === "AGENT_LEFT" || reason === "ROOM_DELETED" || reason === "ROOM_CLOSED"
+          ? "agent_hangup"
+          : "connection_lost"));
     this.#finalize(ended);
   }
 
@@ -567,6 +589,10 @@ export class AgentSession extends TypedEmitter<AgentSessionEvents> {
       clearTimeout(this.#joinTimer);
       this.#joinTimer = undefined;
     }
+    if (this.#endedGraceTimer) {
+      clearTimeout(this.#endedGraceTimer);
+      this.#endedGraceTimer = undefined;
+    }
     this.#endReason = reason;
     this.#setStatus("ended");
     this.#wakeLock.release();
@@ -574,6 +600,23 @@ export class AgentSession extends TypedEmitter<AgentSessionEvents> {
     this.#outputAnalyser.dispose();
     this.#inputAnalyser.dispose();
     this.emit("disconnect", { reason });
+  }
+
+  #handleSessionEnded(reason: string): void {
+    if (this.#status === "ended" || this.#announcedEndReason !== undefined) {
+      return;
+    }
+    if (!ANNOUNCED_END_REASONS.has(reason)) {
+      // Forward compatibility: an unrecognized reason voids the announcement;
+      // the transport disconnect signals decide instead.
+      return;
+    }
+    this.#announcedEndReason = reason as EndReason;
+    const announced = this.#announcedEndReason;
+    this.#endedGraceTimer = setTimeout(() => {
+      void this.#transport.disconnect().catch(() => {});
+      this.#finalize(announced);
+    }, SESSION_ENDED_GRACE_MS);
   }
 
   #handleAgentEvent(message: AgentSessionMessage): void {
@@ -606,6 +649,9 @@ export class AgentSession extends TypedEmitter<AgentSessionEvents> {
           source: message.toolSource,
           error: message.error,
         });
+        return;
+      case "session.ended":
+        this.#handleSessionEnded(message.reason);
         return;
       case "error":
         this.emit(
