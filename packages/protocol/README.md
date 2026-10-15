@@ -22,7 +22,7 @@ Transcripts (streaming assistant reply and user ASR, interim and final) are not 
 The `POST /v1/agent/sessions` exchange:
 
 - `AgentSessionCreateRequest` is the request body. It carries the agent id, per-session `SessionOverrides`, dynamic variables, and attribution fields.
-- `SessionOverrides` is the allow-listed per-session config replacement. It covers first message, system prompt, voice, and language.
+- `SessionOverrides` is the allow-listed per-session config replacement. It covers first message, system prompt, voice, language, and speech recognition model.
 - `SessionToken` is the response. It is a discriminated union on `transport` and is handed to the client verbatim.
 
 ## Conventions

@@ -12,7 +12,7 @@ const session = await AgentSession.start({
 
 ## Overrides
 
-`overrides` replaces config fields for this session: `first_message`, `system_prompt`, `voice_profile_id`, `language`. Each field must be explicitly allow-listed on the agent (`overrides_allowed` in the agent settings); unauthorized fields fail session creation with HTTP 400 rather than being silently dropped.
+`overrides` replaces config fields for this session: `first_message`, `system_prompt`, `voice_profile_id`, `language`, `asr.model` (nested as `asr: { model }`, server-created sessions only). Each field must be explicitly allow-listed on the agent (`overrides_allowed` in the agent settings); unauthorized fields fail session creation with HTTP 400 rather than being silently dropped.
 
 `start()` also accepts `language` as a top-level option. It is shorthand for `overrides.language` and gated by the same allowlist.
 
