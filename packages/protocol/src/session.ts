@@ -92,6 +92,12 @@ export interface SessionOverrides {
   /** TTS voice model id. Voices bias pronunciation toward their own language — pair with `language`. */
   voice_id?: string;
   language?: SessionLanguage;
+  /**
+   * Speech recognition model for this session, same values as the agent's `asr.model`
+   * (e.g. "deepgram:nova-3"). API-key creation only. A preview model the account
+   * cannot use is rejected with 403.
+   */
+  asr_model?: string;
 }
 
 export interface AgentSessionCreateRequest {
