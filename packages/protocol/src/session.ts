@@ -79,6 +79,15 @@ export type SessionLanguage =
   | "af";
 
 
+/** Per-session subset of the agent's `asr` configuration, same field names. */
+export interface SessionAsrOverrides {
+  /**
+   * Speech recognition model, same values as the agent's `asr.model` (e.g. "deepgram:nova-3").
+   * A preview model the account cannot use is rejected with 403.
+   */
+  model?: string;
+}
+
 /**
  * Per-session config overrides; each field must be enabled on the agent.
  * Keyless (public) creation accepts only `language` and `voice_id`.
@@ -92,12 +101,8 @@ export interface SessionOverrides {
   /** TTS voice model id. Voices bias pronunciation toward their own language — pair with `language`. */
   voice_id?: string;
   language?: SessionLanguage;
-  /**
-   * Speech recognition model for this session, same values as the agent's `asr.model`
-   * (e.g. "deepgram:nova-3"). API-key creation only. A preview model the account
-   * cannot use is rejected with 403.
-   */
-  asr_model?: string;
+  /** Speech recognition settings, nested like the agent's `asr` configuration. API-key creation only. */
+  asr?: SessionAsrOverrides;
 }
 
 export interface AgentSessionCreateRequest {

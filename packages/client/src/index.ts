@@ -22,6 +22,7 @@ export type { ClientToolHandler } from "./session/toolDispatcher.js";
 export { MAX_CLIENT_TOOL_RESULT_BYTES } from "./session/toolDispatcher.js";
 export type {
   AgentSessionCreateRequest,
+  SessionAsrOverrides,
   SessionOverrides,
   SessionToken,
   ToolCallSource,
