@@ -76,15 +76,23 @@ describe("public session request", () => {
     });
   });
 
-  it("forwards the world-context opt-out and omits the default", async () => {
+  it("forwards the current time override, the deprecated alias, and omits the default", async () => {
     const fetchMock = stubFetch(201, SESSION_TOKEN);
-    await resolveSessionToken({ agentId: "a", worldContext: false });
+    await resolveSessionToken({ agentId: "a", context: { currentTime: false } });
     const [, offInit] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
-    expect(JSON.parse(offInit.body as string)).toMatchObject({ world_context: false });
+    expect(JSON.parse(offInit.body as string)).toMatchObject({
+      context: { current_time: false },
+    });
+
+    await resolveSessionToken({ agentId: "a", worldContext: false });
+    const [, aliasInit] = fetchMock.mock.calls[1] as unknown as [string, RequestInit];
+    expect(JSON.parse(aliasInit.body as string)).toMatchObject({ world_context: false });
 
     await resolveSessionToken({ agentId: "a" });
-    const [, defaultInit] = fetchMock.mock.calls[1] as unknown as [string, RequestInit];
-    expect(JSON.parse(defaultInit.body as string)).not.toHaveProperty("world_context");
+    const [, defaultInit] = fetchMock.mock.calls[2] as unknown as [string, RequestInit];
+    const body = JSON.parse(defaultInit.body as string);
+    expect(body).not.toHaveProperty("context");
+    expect(body).not.toHaveProperty("world_context");
   });
 
   it("targets a custom serverUrl and strips its trailing slash", async () => {
