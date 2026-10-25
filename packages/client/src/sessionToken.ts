@@ -28,9 +28,11 @@ export interface SessionRequestOptions {
    */
   timezone?: string;
   /**
-   * The agent knows the current date and time by default. Set false to withhold
-   * both from this session's prompt. With `sessionToken` auth the host backend
-   * chooses instead, via `world_context` on its session-creation call.
+   * Whether the agent knows the current date and time. Omitted, the session
+   * follows the agent's configured default (on unless turned off). false
+   * withholds both from this session's prompt, true injects them even when the
+   * agent has them off. With `sessionToken` auth the host backend chooses
+   * instead, via `world_context` on its session-creation call.
    */
   worldContext?: boolean;
   /** Per-session config overrides; each field must be allow-listed on the agent. */

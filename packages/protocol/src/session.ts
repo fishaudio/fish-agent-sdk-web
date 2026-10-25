@@ -127,8 +127,10 @@ export interface AgentSessionCreateRequest {
    */
   client_timezone?: string;
   /**
-   * The agent knows the current date and time by default (world context).
-   * Pass false to withhold both from this session's prompt.
+   * World context: whether the agent knows the current date and time. Omitted,
+   * the session follows the agent's configured default (on unless turned off).
+   * false withholds both from this session's prompt, true injects them even
+   * when the agent has them off.
    */
   world_context?: boolean;
   overrides?: SessionOverrides;
