@@ -12,6 +12,11 @@ export const DEFAULT_SERVER_URL = "https://api.fish.audio";
 
 const SUPPORTED_TRANSPORTS: string[] = [SESSION_TRANSPORT_LIVEKIT];
 
+export interface SessionContextOptions {
+  /** See `context.current_time` on the session request. */
+  currentTime?: boolean;
+}
+
 export interface SessionRequestOptions {
   /** Public agent: the SDK creates the session directly against the Fish API. */
   agentId?: string;
@@ -28,10 +33,14 @@ export interface SessionRequestOptions {
    */
   timezone?: string;
   /**
-   * The agent knows the current date and time by default. Set false to withhold
-   * both from this session's prompt. With `sessionToken` auth the host backend
-   * chooses instead, via `world_context` on its session-creation call.
+   * Per-session overrides of the agent's context switches. `currentTime: false`
+   * withholds the current date and time from this session, `true` injects them
+   * even when the agent has them off, omitted follows the agent. With
+   * `sessionToken` auth the host backend chooses instead, via `context` on its
+   * session-creation call.
    */
+  context?: SessionContextOptions;
+  /** @deprecated Use `context.currentTime`. Still sent as the API's alias. */
   worldContext?: boolean;
   /** Per-session config overrides; each field must be allow-listed on the agent. */
   overrides?: SessionOverrides;
@@ -103,7 +112,11 @@ async function createPublicSession(options: SessionRequestOptions): Promise<Sess
     agent_id: options.agentId as string,
     ...(options.timezone ? { timezone: options.timezone } : {}),
     ...(clientTimezone ? { client_timezone: clientTimezone } : {}),
-    ...(options.worldContext !== undefined ? { world_context: options.worldContext } : {}),
+    ...(options.context?.currentTime !== undefined
+      ? { context: { current_time: options.context.currentTime } }
+      : options.worldContext !== undefined
+        ? { world_context: options.worldContext }
+        : {}),
     ...(overrides ? { overrides } : {}),
     ...(options.dynamicVariables ? { dynamic_variables: options.dynamicVariables } : {}),
     ...(options.endUserId ? { end_user_id: options.endUserId } : {}),

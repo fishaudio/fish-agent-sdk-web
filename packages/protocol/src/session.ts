@@ -105,6 +105,15 @@ export interface SessionOverrides {
   asr?: SessionAsrOverrides;
 }
 
+export interface SessionContext {
+  /**
+   * Whether the agent knows the current date and time in this session. false
+   * withholds both from the prompt, true injects them even when the agent has
+   * them off, omitted follows the agent's `context.current_time`.
+   */
+  current_time?: boolean;
+}
+
 export interface AgentSessionCreateRequest {
   agent_id: string;
   /**
@@ -127,9 +136,11 @@ export interface AgentSessionCreateRequest {
    */
   client_timezone?: string;
   /**
-   * The agent knows the current date and time by default (world context).
-   * Pass false to withhold both from this session's prompt.
+   * Per-session overrides of the agent's context switches (the facts the
+   * platform tells the agent on its own). A switch left out follows the agent.
    */
+  context?: SessionContext;
+  /** @deprecated Use `context.current_time`. Still accepted as an alias. */
   world_context?: boolean;
   overrides?: SessionOverrides;
   dynamic_variables?: Record<string, string | number | boolean>;
